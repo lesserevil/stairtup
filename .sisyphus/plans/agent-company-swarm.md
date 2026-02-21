@@ -135,7 +135,7 @@ Wave 4 (Integration & Safety):
   - Two processes exchange messages; verify both see the full thread.
   **Agent Profile**: `quick`
 
-- [ ] 4. Recruiter Event Loop & JD Generation
+- [x] 4. Recruiter Event Loop & JD Generation
   **What to do**:
   - Implement the `Recruiter` polling loop (adaptive sleep).
   - Use high-level LLM call to translate a `bead` description into a JSON Job Description (Role, Model Category, Skills).
