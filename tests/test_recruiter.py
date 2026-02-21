@@ -314,7 +314,7 @@ class TestJDGenerationMock:
         jd = await recruiter.generate_jd(bead)
 
         assert jd.role == "Frontend Developer"
-        assert jd.suggested_category == "quick"
+        assert jd.suggested_category == "visual-engineering"
         assert "ui_development" in jd.required_capabilities
 
     @pytest.mark.asyncio
@@ -516,11 +516,12 @@ class TestProcessBead:
         with patch.object(
             recruiter, "post_hire_message", new_callable=AsyncMock
         ) as mock_post:
-            jd = await recruiter.process_bead(sample_bead)
+            with patch("app.company.spawner.get_bead", return_value=sample_bead):
+                jd = await recruiter.process_bead(sample_bead)
 
-            assert jd is not None
-            assert jd.role is not None
-            mock_post.assert_called_once()
+                assert jd is not None
+                assert jd.role is not None
+                mock_post.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_process_bead_skips_if_has_agent(self, recruiter, sample_bead):
@@ -651,9 +652,10 @@ class TestIntegration:
     ):
         """Test complete flow: poll -> generate JD -> post HIRE."""
         with patch("app.company.recruiter.get_ready_beads", return_value=sample_beads):
-            # Process all beads
-            for bead in sample_beads:
-                await recruiter.process_bead(bead)
+            with patch("app.company.spawner.get_bead", side_effect=sample_beads):
+                # Process all beads
+                for bead in sample_beads:
+                    await recruiter.process_bead(bead)
 
         # Verify employees were tracked
         assert len(recruiter.employees) == 3
@@ -671,9 +673,10 @@ class TestIntegration:
     async def test_no_duplicate_hires(self, recruiter, temp_slaick, sample_bead):
         """Test that same bead doesn't get hired twice."""
         with patch("app.company.recruiter.get_ready_beads", return_value=[sample_bead]):
-            # Process same bead twice
-            await recruiter.process_bead(sample_bead)
-            await recruiter.process_bead(sample_bead)
+            with patch("app.company.spawner.get_bead", return_value=sample_bead):
+                # Process same bead twice
+                await recruiter.process_bead(sample_bead)
+                await recruiter.process_bead(sample_bead)
 
         # Should only have one employee and one message
         assert len(recruiter.employees) == 1

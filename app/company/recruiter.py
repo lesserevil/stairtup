@@ -16,43 +16,13 @@ from typing import Optional
 
 from app.company.beads import Bead, get_ready_beads
 from app.company.slaick import MessageType, Slaick
+from app.company.spawner import AgentSpawner
+from app.company.types import JobDescription
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class JobDescription:
-    """Structured Job Description for agent hiring."""
-
-    role: str
-    description: str
-    required_capabilities: list[str]
-    suggested_category: str
-    cost_estimate: float
-    complexity: float
-
-    def to_dict(self) -> dict:
-        """Convert to dictionary format."""
-        return {
-            "role": self.role,
-            "description": self.description,
-            "required_capabilities": self.required_capabilities,
-            "suggested_category": self.suggested_category,
-            "cost_estimate": self.cost_estimate,
-            "complexity": self.complexity,
-        }
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "JobDescription":
-        """Create from dictionary."""
-        return cls(
-            role=data["role"],
-            description=data["description"],
-            required_capabilities=data["required_capabilities"],
-            suggested_category=data["suggested_category"],
-            cost_estimate=data["cost_estimate"],
-            complexity=data["complexity"],
-        )
+# JobDescription is now imported from app.company.types
 
 
 @dataclass
@@ -92,6 +62,7 @@ class Recruiter:
         fast_poll_interval: float = 1.0,
         slow_poll_interval: float = 5.0,
         use_llm: bool = False,
+        employees_file: Optional[Path | str] = None,
     ):
         """
         Initialize the Recruiter.
@@ -101,6 +72,7 @@ class Recruiter:
             fast_poll_interval: Seconds to sleep when work is available
             slow_poll_interval: Seconds to sleep when idle
             use_llm: Whether to call OpenAI API (False = use mock)
+            employees_file: Path to employees.jsonl (creates default if None)
         """
         self.running = False
         self.slaick = slaick or Slaick()
@@ -108,6 +80,13 @@ class Recruiter:
         self.fast_poll_interval = fast_poll_interval
         self.slow_poll_interval = slow_poll_interval
         self.use_llm = use_llm and os.environ.get("OPENAI_API_KEY") is not None
+        
+        # Initialize spawner for agent spawning
+        self.spawner = AgentSpawner(
+            employees_file=employees_file,
+            slaick=self.slaick,
+            mock_mode=True,  # Default to mock mode for MVP
+        )
 
         logger.info(
             f"Recruiter initialized (poll: {fast_poll_interval}s fast, "
@@ -234,7 +213,7 @@ class Recruiter:
                     "css",
                     "accessibility",
                 ],
-                "category": "quick",
+                "category": "visual-engineering",
             },
             "backend": {
                 "role": "Backend Developer",
@@ -487,6 +466,21 @@ Cost should be $0.02-0.15 based on complexity."""
 
         # Post hire message
         await self.post_hire_message(bead, jd)
+
+        # Actually spawn the agent
+        try:
+            agent_id = await self.spawner.spawn_agent(jd, bead.id)
+            logger.info(f"Spawned agent {agent_id} for bead {bead.id}")
+            
+            # Update employee status to active (was pending)
+            if bead.id in self.employees:
+                self.employees[bead.id].status = "active"
+        except Exception as e:
+            logger.error(f"Failed to spawn agent for bead {bead.id}: {e}")
+            # Mark employee as failed
+            if bead.id in self.employees:
+                self.employees[bead.id].status = "failed"
+            raise
 
         return jd
 
