@@ -119,7 +119,7 @@ Wave 4 (Integration & Safety):
   - `npx vitest run` should pass.
   **Agent Profile**: `quick`
 
-- [ ] 2. Beads Atomic Claim Logic
+- [x] 2. Beads Atomic Claim Logic
   **What to do**:
   - Implement `claimBead(id, agentId)` using optimistic concurrency control.
   - Wrap `bd update` with a version/status check to ensure atomicity.
