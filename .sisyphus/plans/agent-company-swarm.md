@@ -159,7 +159,7 @@ Wave 4 (Integration & Safety):
   - Set budget to $0.01; verify hiring fails after first task.
   **Agent Profile**: `unspecified-high`
 
-- [ ] 7. Employee Base Runtime & Heartbeat
+- [x] 7. Employee Base Runtime & Heartbeat
   **What to do**:
   - Create the `Employee` base class.
   - Implement periodic heartbeat writes to `employees.jsonl` (lease based).
