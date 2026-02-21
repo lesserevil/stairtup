@@ -151,7 +151,7 @@ Wave 4 (Integration & Safety):
   - Recruiter calls spawn for a "Frontend Dev" JD; verify a `visual-engineering` task is launched.
   **Agent Profile**: `unspecified-high`
 
-- [ ] 6. Cost Tracking & Circuit Breaker
+- [x] 6. Cost Tracking & Circuit Breaker
   **What to do**:
   - Implement a middleware that tracks model usage and token costs.
   - Add a "Circuit Breaker" that stops hiring if session budget is exceeded.

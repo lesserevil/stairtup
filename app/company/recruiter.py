@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Optional
 
 from app.company.beads import Bead, get_ready_beads
+from app.company.cost_tracker import CostTracker
 from app.company.slaick import MessageType, Slaick
 from app.company.spawner import AgentSpawner
 from app.company.types import JobDescription
@@ -63,6 +64,7 @@ class Recruiter:
         slow_poll_interval: float = 5.0,
         use_llm: bool = False,
         employees_file: Optional[Path | str] = None,
+        cost_tracker: Optional[CostTracker] = None,
     ):
         """
         Initialize the Recruiter.
@@ -73,6 +75,7 @@ class Recruiter:
             slow_poll_interval: Seconds to sleep when idle
             use_llm: Whether to call OpenAI API (False = use mock)
             employees_file: Path to employees.jsonl (creates default if None)
+            cost_tracker: CostTracker for budget management (None = unlimited)
         """
         self.running = False
         self.slaick = slaick or Slaick()
@@ -80,6 +83,7 @@ class Recruiter:
         self.fast_poll_interval = fast_poll_interval
         self.slow_poll_interval = slow_poll_interval
         self.use_llm = use_llm and os.environ.get("OPENAI_API_KEY") is not None
+        self.cost_tracker = cost_tracker
         
         # Initialize spawner for agent spawning
         self.spawner = AgentSpawner(
@@ -90,7 +94,8 @@ class Recruiter:
 
         logger.info(
             f"Recruiter initialized (poll: {fast_poll_interval}s fast, "
-            f"{slow_poll_interval}s slow, llm={self.use_llm})"
+            f"{slow_poll_interval}s slow, llm={self.use_llm}, "
+            f"cost_tracker={'enabled' if cost_tracker else 'disabled'})"
         )
 
     def has_agent_for_bead(self, bead: Bead) -> bool:
@@ -461,8 +466,18 @@ Cost should be $0.02-0.15 based on complexity."""
         jd = await self.generate_jd(bead)
         logger.info(
             f"Generated JD for {bead.id}: {jd.role} ({jd.suggested_category}, "
-            f"complexity: {jd.complexity})"
+            f"complexity: {jd.complexity}, cost: ${jd.cost_estimate})"
         )
+
+        # Check cost tracker before proceeding
+        if self.cost_tracker is not None:
+            if not self.cost_tracker.can_afford(jd.cost_estimate, jd.suggested_category):
+                logger.warning(
+                    f"Cannot afford to hire for bead {bead.id}: "
+                    f"cost ${jd.cost_estimate} would exceed budget"
+                )
+                await self._notify_budget_exceeded(bead, jd)
+                return None
 
         # Post hire message
         await self.post_hire_message(bead, jd)
@@ -471,7 +486,15 @@ Cost should be $0.02-0.15 based on complexity."""
         try:
             agent_id = await self.spawner.spawn_agent(jd, bead.id)
             logger.info(f"Spawned agent {agent_id} for bead {bead.id}")
-            
+
+            # Record the cost
+            if self.cost_tracker is not None:
+                self.cost_tracker.record_cost(
+                    cost=jd.cost_estimate,
+                    agent_id=agent_id,
+                    category=jd.suggested_category,
+                )
+
             # Update employee status to active (was pending)
             if bead.id in self.employees:
                 self.employees[bead.id].status = "active"
@@ -483,6 +506,44 @@ Cost should be $0.02-0.15 based on complexity."""
             raise
 
         return jd
+
+    async def _notify_budget_exceeded(self, bead: Bead, jd: JobDescription) -> dict:
+        """
+        Send an error message when budget is exceeded.
+
+        Args:
+            bead: The bead that couldn't be hired for
+            jd: The JobDescription that exceeded budget
+
+        Returns:
+            The message dict that was sent
+        """
+        from datetime import datetime, timezone
+
+        payload = {
+            "error": "budget_exceeded",
+            "bead_id": bead.id,
+            "bead_title": bead.title,
+            "requested_cost": jd.cost_estimate,
+            "category": jd.suggested_category,
+        }
+
+        # Add budget info if cost tracker is available
+        if self.cost_tracker is not None:
+            payload["current_spent"] = self.cost_tracker.get_current_spent()
+            payload["budget"] = self.cost_tracker.budget
+            payload["remaining"] = self.cost_tracker.get_remaining_budget()
+
+        message = self.slaick.append_message(
+            from_agent="recruiter",
+            to_agent="ceo",
+            msg_type=MessageType.ERROR,
+            payload=payload,
+        )
+
+        logger.info(f"Sent budget exceeded notification for bead {bead.id}")
+
+        return message
 
     async def run(self) -> None:
         """
