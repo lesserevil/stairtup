@@ -127,7 +127,7 @@ Wave 4 (Integration & Safety):
   - Run 5 agents simultaneously trying to claim one bead; only one should succeed.
   **Agent Profile**: `unspecified-high`
 
-- [ ] 3. Slaick Communication Protocol
+- [x] 3. Slaick Communication Protocol
   **What to do**:
   - Create `Slaick` class for reading/writing JSONL messages.
   - Implement `appendMessage`, `getNewMessages`, and `tailMessages`.
