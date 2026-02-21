@@ -143,7 +143,7 @@ Wave 4 (Integration & Safety):
   - Provide a complex task bead; verify Recruiter produces a sensible JD (e.g. "Security Auditor").
   **Agent Profile**: `ultrabrain`
 
-- [ ] 5. Agent Spawning Mechanism
+- [x] 5. Agent Spawning Mechanism
   **What to do**:
   - Implement a `task()` wrapper that hires an agent based on a JD.
   - Correctly map JD attributes to `category`, `subagent_type`, and `load_skills`.
