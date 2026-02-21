@@ -590,6 +590,289 @@ Cost should be $0.02-0.15 based on complexity."""
         self.running = False
         logger.info("Recruiter stop signal received")
 
+    # ========================================================================
+    # Message Listener and Dispatcher Methods
+    # ========================================================================
+
+    def _init_message_handlers(self) -> None:
+        """Initialize message type handlers."""
+        self._message_handlers: dict[str, callable] = {}
+        self._last_processed_message_id: Optional[str] = None
+        self._message_listener_task: Optional[asyncio.Task] = None
+        self._listening = False
+
+        # Register default handlers
+        self.register_handler(MessageType.COMPLETE.value, self._handle_complete_message)
+        self.register_handler(MessageType.PROGRESS.value, self._handle_progress_message)
+        self.register_handler(MessageType.ERROR.value, self._handle_error_message)
+
+    def register_handler(self, msg_type: str, handler: callable) -> None:
+        """
+        Register a handler for a specific message type.
+
+        Args:
+            msg_type: The message type to handle
+            handler: Async function that takes a message dict
+        """
+        self._message_handlers[msg_type] = handler
+        logger.debug(f"Registered handler for message type: {msg_type}")
+
+    async def _dispatch_message(self, message: dict) -> None:
+        """
+        Dispatch a message to the appropriate handler.
+
+        Args:
+            message: The message dict to dispatch
+        """
+        msg_type = message.get("type")
+        handler = self._message_handlers.get(msg_type)
+
+        if handler:
+            try:
+                await handler(message)
+            except Exception as e:
+                logger.error(f"Error handling message type {msg_type}: {e}")
+        else:
+            logger.debug(f"No handler registered for message type: {msg_type}")
+
+    async def _handle_complete_message(self, message: dict) -> None:
+        """
+        Handle COMPLETE messages from employees.
+
+        Marks the employee as idle/completed and updates tracking.
+
+        Args:
+            message: The COMPLETE message dict
+        """
+        payload = message.get("payload", {})
+        employee_id = payload.get("agent_id")
+        bead_id = payload.get("bead_id")
+
+        if not employee_id or not bead_id:
+            logger.warning(f"COMPLETE message missing employee_id or bead_id: {message}")
+            return
+
+        # Find and update the employee status
+        found = False
+        for emp_bead_id, employee in self.employees.items():
+            if employee.employee_id == employee_id or emp_bead_id == bead_id:
+                employee.status = "completed"
+                logger.info(f"Employee {employee_id} completed work on bead {bead_id}")
+                found = True
+                break
+
+        if not found:
+            logger.debug(f"Received COMPLETE from unknown employee: {employee_id}")
+
+        # Send ACK back to the employee
+        await self._send_ack_message(message, status="received")
+
+    async def _handle_progress_message(self, message: dict) -> None:
+        """
+        Handle PROGRESS messages from employees.
+
+        Logs status updates from employees.
+
+        Args:
+            message: The PROGRESS message dict
+        """
+        payload = message.get("payload", {})
+        employee_id = payload.get("agent_id")
+        status_msg = payload.get("message", "Unknown status")
+        role = payload.get("role", "Unknown role")
+
+        logger.info(f"PROGRESS from {employee_id} ({role}): {status_msg}")
+
+        # Send ACK back
+        await self._send_ack_message(message, status="received")
+
+    async def _handle_error_message(self, message: dict) -> None:
+        """
+        Handle ERROR messages from employees.
+
+        Logs error messages and potentially triggers alerts.
+
+        Args:
+            message: The ERROR message dict
+        """
+        payload = message.get("payload", {})
+        employee_id = payload.get("agent_id")
+        error = payload.get("error", "Unknown error")
+        bead_id = payload.get("bead_id", "Unknown bead")
+
+        logger.error(f"ERROR from {employee_id} on bead {bead_id}: {error}")
+
+        # Send ACK back
+        await self._send_ack_message(message, status="received")
+
+    async def _send_ack_message(
+        self,
+        original_message: dict,
+        status: str = "received",
+        payload: Optional[dict] = None,
+    ) -> dict:
+        """
+        Send an ACK message back to the sender.
+
+        Args:
+            original_message: The message being acknowledged
+            status: ACK status (e.g., 'received', 'processed')
+            payload: Optional additional payload data
+
+        Returns:
+            The ACK message dict that was sent
+        """
+        from_agent = original_message.get("to", "recruiter")
+        to_agent = original_message.get("from")
+        original_id = original_message.get("id")
+
+        if not to_agent:
+            logger.warning("Cannot send ACK: no 'from' field in original message")
+            return {}
+
+        ack_payload = {
+            "original_message_id": original_id,
+            "original_type": original_message.get("type"),
+            "status": status,
+            "timestamp": self._generate_timestamp(),
+        }
+
+        if payload:
+            ack_payload.update(payload)
+
+        ack_message = self.slaick.append_message(
+            from_agent=from_agent,
+            to_agent=to_agent,
+            msg_type=MessageType.ACK,
+            payload=ack_payload,
+        )
+
+        logger.debug(f"Sent ACK to {to_agent} for message {original_id}")
+        return ack_message
+
+    def _generate_timestamp(self) -> str:
+        """Generate ISO 8601 timestamp in UTC."""
+        from datetime import datetime, timezone
+        return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    async def start_message_listener(
+        self,
+        poll_interval: float = 2.0,
+        listen_for: Optional[str] = None,
+    ) -> None:
+        """
+        Start the message listener background task.
+
+        This starts a background task that continuously polls for new messages
+        and dispatches them to the appropriate handlers.
+
+        Args:
+            poll_interval: Seconds between message polls
+            listen_for: Agent ID to listen for (defaults to 'recruiter')
+        """
+        if self._listening:
+            logger.warning("Message listener already running")
+            return
+
+        # Ensure message handlers are initialized
+        if not hasattr(self, '_message_handlers'):
+            self._init_message_handlers()
+
+        self._listening = True
+        agent_id = listen_for or "recruiter"
+
+        self._message_listener_task = asyncio.create_task(
+            self._message_listener_loop(agent_id, poll_interval)
+        )
+
+        logger.info(f"Message listener started for agent '{agent_id}'")
+
+    async def _message_listener_loop(
+        self,
+        agent_id: str,
+        poll_interval: float = 2.0,
+    ) -> None:
+        """
+        Background loop that listens for and dispatches messages.
+
+        Args:
+            agent_id: The agent ID to listen for
+            poll_interval: Seconds between polls
+        """
+        logger.info(f"Message listener loop started for {agent_id}")
+
+        try:
+            async for message in self.slaick.listen(
+                agent_id=agent_id,
+                poll_interval=poll_interval,
+            ):
+                if not self._listening:
+                    break
+
+                msg_id = message.get("id")
+
+                # Skip if we've already processed this message
+                if msg_id == self._last_processed_message_id:
+                    continue
+
+                self._last_processed_message_id = msg_id
+
+                logger.debug(f"Processing message {msg_id} of type {message.get('type')}")
+                await self._dispatch_message(message)
+
+        except asyncio.CancelledError:
+            logger.info("Message listener loop cancelled")
+        except Exception as e:
+            logger.error(f"Error in message listener loop: {e}")
+            raise
+        finally:
+            logger.info("Message listener loop stopped")
+
+    async def stop_message_listener(self) -> None:
+        """Stop the message listener background task."""
+        if not self._listening:
+            return
+
+        self._listening = False
+
+        if self._message_listener_task and not self._message_listener_task.done():
+            self._message_listener_task.cancel()
+            try:
+                await self._message_listener_task
+            except asyncio.CancelledError:
+                pass
+
+        logger.info("Message listener stopped")
+
+    async def run_with_listener(
+        self,
+        message_poll_interval: float = 2.0,
+        listen_for: Optional[str] = None,
+    ) -> None:
+        """
+        Run the recruiter with message listening enabled.
+
+        This runs both the main polling loop and the message listener
+        concurrently.
+
+        Args:
+            message_poll_interval: Seconds between message polls
+            listen_for: Agent ID to listen for
+        """
+        # Initialize handlers if not already done
+        if not hasattr(self, '_message_handlers'):
+            self._init_message_handlers()
+
+        # Start message listener
+        await self.start_message_listener(message_poll_interval, listen_for)
+
+        try:
+            # Run main recruiter loop
+            await self.run()
+        finally:
+            # Ensure listener is stopped
+            await self.stop_message_listener()
+
 
 async def run_recruiter(
     slaick: Optional[Slaick] = None,

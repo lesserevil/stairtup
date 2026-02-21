@@ -21,6 +21,8 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
+
+from app.company.beads import Bead, claim_bead_async, get_ready_beads
 from app.company.slaick import MessageType, Slaick
 from app.company.types import JobDescription
 
@@ -68,6 +70,8 @@ class Employee:
         slaick: Optional[Slaick] = None,
         heartbeat_interval: int = 10,
         heartbeat_ttl: int = 30,
+        poll_interval: float = 5.0,
+        task_execution_time: float = 2.0,
     ):
         """
         Initialize the Employee runtime.
@@ -79,6 +83,8 @@ class Employee:
             slaick: Slaick instance for messaging (creates default if None)
             heartbeat_interval: Seconds between heartbeats (default: 10)
             heartbeat_ttl: Seconds until heartbeat expires (default: 30)
+            poll_interval: Seconds between work polling attempts (default: 5)
+            task_execution_time: Seconds to simulate task execution (default: 2)
         """
         self.agent_id = agent_id
         self.job_description = job_description
@@ -90,12 +96,18 @@ class Employee:
         self.slaick = slaick or Slaick()
         self.heartbeat_interval = heartbeat_interval
         self.heartbeat_ttl = heartbeat_ttl
+        self.poll_interval = poll_interval
+        self.task_execution_time = task_execution_time
 
         self._status = EmployeeStatus.IDLE
         self._heartbeat_task: Optional[asyncio.Task] = None
+        self._work_stealing_task: Optional[asyncio.Task] = None
         self._shutdown_event = asyncio.Event()
         self._is_running = False
         self._lock = asyncio.Lock()
+        self._current_bead: Optional[Bead] = None
+        self._is_listening = False
+        self._message_listener_task: Optional[asyncio.Task] = None
 
         logger.info(
             f"Employee {agent_id} initialized with role: {job_description.role}"
@@ -336,6 +348,11 @@ class Employee:
             self._heartbeat_loop(), name=f"heartbeat_{self.agent_id}"
         )
 
+        # Start work stealing loop
+        self._work_stealing_task = asyncio.create_task(
+            self._work_stealing_loop(), name=f"work_stealing_{self.agent_id}"
+        )
+
         # Set up signal handlers for graceful shutdown
         try:
             loop = asyncio.get_event_loop()
@@ -367,6 +384,23 @@ class Employee:
 
         # Signal shutdown
         self._shutdown_event.set()
+
+        # Wait for work stealing task to complete first (may be executing a task)
+        if self._work_stealing_task and not self._work_stealing_task.done():
+            try:
+                # Give more time for work stealing to finish current task
+                await asyncio.wait_for(self._work_stealing_task, timeout=10.0)
+            except asyncio.TimeoutError:
+                logger.warning(
+                    f"Work stealing task did not complete in time for {self.agent_id}"
+                )
+                self._work_stealing_task.cancel()
+                try:
+                    await self._work_stealing_task
+                except asyncio.CancelledError:
+                    pass
+            except asyncio.CancelledError:
+                pass
 
         # Wait for heartbeat task to complete
         if self._heartbeat_task and not self._heartbeat_task.done():
@@ -425,6 +459,426 @@ class Employee:
             "last_heartbeat": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "expires_at": expires_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
+    # ==========================================================================
+
+    # ==========================================================================
+    # Work Stealing / Task Execution Methods
+    # ==========================================================================
+    # Work Stealing / Task Execution Methods
+    # ==========================================================================
+
+    def _can_do_task(self, bead: Bead) -> bool:
+        """
+        Check if this employee can handle a task based on their specialization.
+
+        Uses rule-based matching to determine if the bead title matches
+        the employee's role (JD). This is a simplified mock for testing -
+        in production this could use LLM-based matching.
+
+        Matching rules:
+        - Frontend Developer: bead title contains CSS/HTML/React
+        - Backend Developer: bead title contains API/DB/Python
+
+        Args:
+            bead: The bead to check
+
+        Returns:
+            True if this employee can handle the task, False otherwise
+        """
+        role = self.job_description.role.lower()
+        title = bead.title.lower()
+
+        # Frontend Developer matching
+        if "frontend" in role:
+            frontend_keywords = ["css", "html", "react", "ui", "ux", "frontend"]
+            return any(kw in title for kw in frontend_keywords)
+
+        # Backend Developer matching
+        if "backend" in role:
+            backend_keywords = ["api", "db", "database", "python", "backend", "server"]
+            return any(kw in title for kw in backend_keywords)
+
+        # Default: accept all tasks (for generic roles)
+        return True
+
+    async def poll_for_work(self) -> Optional[Bead]:
+        """
+        Poll for available work and attempt to claim a matching bead.
+
+        This method:
+        1. Only runs if status is IDLE (availability gate)
+        2. Gets all ready beads from the system
+        3. Filters beads that match this employee's specialization
+        4. Attempts to atomically claim a matching bead
+        5. Returns the claimed bead or None
+
+        Returns:
+            The claimed Bead if successful, None otherwise
+        """
+        # Availability gate: only poll if idle
+        if self._status != EmployeeStatus.IDLE:
+            logger.debug(f"Employee {self.agent_id} is not idle, skipping work poll")
+            return None
+
+        try:
+            # Get all ready beads
+            ready_beads = await asyncio.get_event_loop().run_in_executor(
+                None, get_ready_beads
+            )
+
+            if not ready_beads:
+                return None
+
+            logger.info(f"Employee {self.agent_id} found {len(ready_beads)} ready beads")
+
+            # Try to claim matching beads in priority order
+            for bead in ready_beads:
+                # Specialization gate: check if we can do this task
+                if not self._can_do_task(bead):
+                    logger.debug(
+                        f"Employee {self.agent_id} cannot handle bead {bead.id}: {bead.title}"
+                    )
+                    continue
+
+                logger.info(
+                    f"Employee {self.agent_id} attempting to claim bead {bead.id}: {bead.title}"
+                )
+
+                # Concurrency gate: attempt atomic claim
+                claimed = await claim_bead_async(bead.id, self.agent_id)
+
+                if claimed:
+                    logger.info(f"Employee {self.agent_id} successfully claimed bead {bead.id}")
+                    return bead
+                else:
+                    logger.debug(
+                        f"Employee {self.agent_id} failed to claim bead {bead.id} (already claimed)"
+                    )
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error polling for work: {e}")
+            return None
+
+    async def _send_claimed_message(self, bead: Bead) -> None:
+        """Send 'Claimed task' message via Slaick."""
+        try:
+            payload = {
+                "agent_id": self.agent_id,
+                "role": self.job_description.role,
+                "bead_id": bead.id,
+                "bead_title": bead.title,
+                "message": f"Claimed task {bead.id}",
+            }
+
+            self.slaick.append_message(
+                from_agent=self.agent_id,
+                to_agent="orchestrator",
+                msg_type=MessageType.CLAIM,
+                payload=payload,
+            )
+
+            logger.info(f"Sent CLAIM message for bead {bead.id}")
+
+        except Exception as e:
+            logger.error(f"Failed to send CLAIM message: {e}")
+
+    async def _send_completed_message(self, bead: Bead) -> None:
+        """Send 'Completed task' message via Slaick."""
+        try:
+            payload = {
+                "agent_id": self.agent_id,
+                "role": self.job_description.role,
+                "bead_id": bead.id,
+                "bead_title": bead.title,
+                "message": "Completed",
+            }
+
+            self.slaick.append_message(
+                from_agent=self.agent_id,
+                to_agent="orchestrator",
+                msg_type=MessageType.COMPLETE,
+                payload=payload,
+            )
+
+            logger.info(f"Sent COMPLETE message for bead {bead.id}")
+
+        except Exception as e:
+            logger.error(f"Failed to send COMPLETE message: {e}")
+
+    async def _update_bead_status_done(self, bead_id: str) -> bool:
+        """
+        Update bead status to 'done' using bd CLI.
+
+        Args:
+            bead_id: The bead ID to update
+
+        Returns:
+            True if update succeeded, False otherwise
+        """
+        import subprocess
+
+        try:
+            result = subprocess.run(
+                ["bd", "update", bead_id, "--status", "done"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode == 0:
+                logger.info(f"Updated bead {bead_id} status to done")
+                return True
+            else:
+                logger.error(f"Failed to update bead {bead_id}: {result.stderr}")
+                return False
+        except Exception as e:
+            logger.error(f"Error updating bead {bead_id}: {e}")
+            return False
+
+    async def execute_task(self, bead: Bead) -> None:
+        """
+        Execute a claimed task.
+
+        This method simulates task execution by:
+        1. Setting status to BUSY
+        2. Sending CLAIM message via Slaick
+        3. Simulating work (async sleep)
+        4. Updating bead status to 'done'
+        5. Sending COMPLETE message via Slaick
+        6. Setting status back to IDLE
+
+        Args:
+            bead: The bead to execute
+        """
+        logger.info(f"Employee {self.agent_id} starting execution of bead {bead.id}")
+
+        # Transition to BUSY
+        self._current_bead = bead
+        await self.set_status(EmployeeStatus.BUSY)
+
+        # Send CLAIM message
+        await self._send_claimed_message(bead)
+
+        try:
+            # Simulate work execution
+            logger.info(
+                f"Employee {self.agent_id} executing bead {bead.id} "
+                f"(simulated work for {self.task_execution_time}s)"
+            )
+            await asyncio.sleep(self.task_execution_time)
+
+            # Update bead status to done
+            await self._update_bead_status_done(bead.id)
+
+            # Send COMPLETE message
+            await self._send_completed_message(bead)
+
+            logger.info(f"Employee {self.agent_id} completed bead {bead.id}")
+
+        except Exception as e:
+            logger.error(f"Error executing bead {bead.id}: {e}")
+            # Send ERROR message on failure
+            try:
+                self.slaick.append_message(
+                    from_agent=self.agent_id,
+                    to_agent="orchestrator",
+                    msg_type=MessageType.ERROR,
+                    payload={
+                        "agent_id": self.agent_id,
+                        "bead_id": bead.id,
+                        "error": str(e),
+                    },
+                )
+            except Exception:
+                pass
+
+        finally:
+            # Always transition back to IDLE
+            self._current_bead = None
+            await self.set_status(EmployeeStatus.IDLE)
+
+    async def _work_stealing_loop(self) -> None:
+        """
+        Background task that continuously polls for work.
+
+        Runs until _shutdown_event is set. Implements the work stealing protocol:
+        - When IDLE: Poll for work every poll_interval seconds
+        - When work found: Claim and execute it
+        - When BUSY: Skip polling (don't claim multiple tasks)
+
+        The loop handles the full lifecycle: Idle -> Scan -> Claim -> Busy -> Complete -> Idle
+        """
+        logger.info(f"Work stealing loop started for {self.agent_id}")
+
+        try:
+            while not self._shutdown_event.is_set():
+                # Only poll if we're idle
+                if self._status == EmployeeStatus.IDLE:
+                    bead = await self.poll_for_work()
+
+                    if bead:
+                        # Execute the task (this handles status transitions)
+                        await self.execute_task(bead)
+                    else:
+                        # No work available, wait before polling again
+                        try:
+                            await asyncio.wait_for(
+                                self._shutdown_event.wait(), timeout=self.poll_interval
+                            )
+                        except asyncio.TimeoutError:
+                            pass
+                else:
+                    # We're busy, just wait for next poll cycle
+                    try:
+                        await asyncio.wait_for(
+                            self._shutdown_event.wait(), timeout=self.poll_interval
+                        )
+                    except asyncio.TimeoutError:
+                        pass
+
+        except asyncio.CancelledError:
+            logger.info(f"Work stealing loop cancelled for {self.agent_id}")
+            raise
+        except Exception as e:
+            logger.error(f"Work stealing loop error for {self.agent_id}: {e}")
+            raise
+
+    async def start_work_stealing(self) -> None:
+        """
+        Start the work stealing background loop.
+
+        This should be called after start() to enable automatic task execution.
+        The work stealing loop runs independently of the heartbeat loop.
+        """
+        if self._work_stealing_task and not self._work_stealing_task.done():
+            logger.warning(f"Work stealing already running for {self.agent_id}")
+            return
+
+        self._work_stealing_task = asyncio.create_task(
+            self._work_stealing_loop(), name=f"work_stealing_{self.agent_id}"
+        )
+        logger.info(f"Started work stealing loop for {self.agent_id}")
+
+    async def stop_work_stealing(self) -> None:
+        """
+        Stop the work stealing background loop gracefully.
+
+        Cancels the work stealing task and waits for it to complete.
+        """
+        if self._work_stealing_task and not self._work_stealing_task.done():
+            self._work_stealing_task.cancel()
+            try:
+                await self._work_stealing_task
+            except asyncio.CancelledError:
+                pass
+            logger.info(f"Stopped work stealing loop for {self.agent_id}")
+
+    def get_current_bead(self) -> Optional[Bead]:
+        """Get the bead currently being executed, if any."""
+        return self._current_bead
+
+    async def start_message_listener(
+        self,
+        poll_interval: float = 2.0,
+    ) -> None:
+        """
+        Start listening for messages directed to this employee.
+
+        This is primarily for future use (e.g., receiving commands from
+        a supervisor or orchestrator). Currently, employees mainly send
+        messages (PROGRESS, COMPLETE, ERROR) but this enables two-way
+        communication.
+
+        Args:
+            poll_interval: Seconds between message polls
+        """
+        if self._is_listening:
+            logger.warning(f"Message listener already running for {self.agent_id}")
+            return
+
+        self._is_listening = True
+        self._message_listener_task = asyncio.create_task(
+            self._message_listener_loop(poll_interval)
+        )
+
+        logger.info(f"Message listener started for {self.agent_id}")
+
+    async def _message_listener_loop(self, poll_interval: float = 2.0) -> None:
+        """
+        Background loop that listens for incoming messages.
+
+        Args:
+            poll_interval: Seconds between polls
+        """
+        logger.info(f"Message listener loop started for {self.agent_id}")
+
+        try:
+            async for message in self.slaick.listen(
+                agent_id=self.agent_id,
+                poll_interval=poll_interval,
+            ):
+                if not self._is_listening:
+                    break
+
+                msg_id = message.get("id")
+                msg_type = message.get("type")
+
+                logger.debug(
+                    f"Employee {self.agent_id} received message {msg_id} of type {msg_type}"
+                )
+
+                # Handle different message types
+                if msg_type == MessageType.ACK.value:
+                    await self._handle_ack_message(message)
+                else:
+                    # For now, just log unknown message types
+                    logger.debug(
+                        f"Employee {self.agent_id} received unhandled message type: {msg_type}"
+                    )
+
+        except asyncio.CancelledError:
+            logger.info(f"Message listener loop cancelled for {self.agent_id}")
+        except Exception as e:
+            logger.error(f"Error in message listener loop for {self.agent_id}: {e}")
+        finally:
+            logger.info(f"Message listener loop stopped for {self.agent_id}")
+
+    async def _handle_ack_message(self, message: dict) -> None:
+        """
+        Handle ACK messages from the orchestrator/recruiter.
+
+        Args:
+            message: The ACK message dict
+        """
+        payload = message.get("payload", {})
+        original_type = payload.get("original_type")
+        status = payload.get("status")
+
+        logger.debug(
+            f"Employee {self.agent_id} received ACK for {original_type} with status {status}"
+        )
+
+    async def stop_message_listener(self) -> None:
+        """Stop the message listener background task."""
+        if not self._is_listening:
+            return
+
+        self._is_listening = False
+
+        if self._message_listener_task and not self._message_listener_task.done():
+            self._message_listener_task.cancel()
+            try:
+                await self._message_listener_task
+            except asyncio.CancelledError:
+                pass
+
+        logger.info(f"Message listener stopped for {self.agent_id}")
+
+    def is_listening(self) -> bool:
+        """Check if the message listener is running."""
+        return self._is_listening
+
 
 
 @asynccontextmanager
@@ -464,3 +918,4 @@ async def employee_runtime(
         yield emp
     finally:
         await emp.shutdown()
+

@@ -5,12 +5,13 @@ This module provides an append-only JSONL message log for agents to communicate.
 Messages are written atomically to ensure thread-safety across processes.
 """
 
+import asyncio
 import json
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, AsyncGenerator, Callable, Optional
 
 
 class MessageType(str, Enum):
@@ -284,3 +285,98 @@ class Slaick:
             Number of messages in the log
         """
         return len(self._read_all_messages())
+
+    async def listen(
+        self,
+        agent_id: str,
+        callback: Optional[Callable[[dict[str, Any]], None]] = None,
+        poll_interval: float = 2.0,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """
+        Async generator that yields new messages for the specified agent.
+
+        Implements a long-polling pattern that checks for new messages every
+        poll_interval seconds. Only yields messages where `to` matches agent_id
+        or where `to` is 'broadcast'.
+
+        Args:
+            agent_id: The agent ID to listen for messages
+            callback: Optional callback function called for each message
+            poll_interval: Seconds between polls (default: 2.0)
+
+        Yields:
+            Message dicts as they arrive
+
+        Example:
+            async for message in slaick.listen('agent-1'):
+                print(f"Received: {message}")
+        """
+        last_message_id: Optional[str] = None
+
+        while True:
+            # Get new messages for this agent
+            messages = self.get_messages(to=agent_id)
+
+            # If we have a last_id, only get messages after it
+            if last_message_id is not None:
+                # Filter messages that come after last_message_id
+                found_last = False
+                new_messages = []
+                for msg in messages:
+                    if msg.get('id') == last_message_id:
+                        found_last = True
+                        continue
+                    if found_last:
+                        new_messages.append(msg)
+                messages = new_messages
+
+            for msg in messages:
+                last_message_id = msg.get('id')
+                if callback:
+                    callback(msg)
+                yield msg
+
+            await asyncio.sleep(poll_interval)
+
+    async def listen_with_history(
+        self,
+        agent_id: str,
+        last_processed_id: Optional[str] = None,
+        poll_interval: float = 2.0,
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """
+        Listen for messages starting from a specific message ID.
+
+        Similar to listen() but tracks `last_processed_id` internally to
+        prevent duplicate processing of the same messages.
+
+        Args:
+            agent_id: The agent ID to listen for
+            last_processed_id: ID of last processed message (for resume)
+            poll_interval: Seconds between polls
+
+        Yields:
+            New message dicts only
+        """
+        last_id = last_processed_id
+
+        while True:
+            messages = self.get_messages(to=agent_id)
+
+            if last_id:
+                # Filter to only messages after last_id
+                found = False
+                new_messages = []
+                for msg in messages:
+                    if msg.get('id') == last_id:
+                        found = True
+                        continue
+                    if found:
+                        new_messages.append(msg)
+                messages = new_messages
+
+            for msg in messages:
+                last_id = msg.get('id')
+                yield msg
+
+            await asyncio.sleep(poll_interval)
