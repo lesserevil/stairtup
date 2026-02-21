@@ -36,6 +36,7 @@ class EmployeeStatus(str, Enum):
     BUSY = "busy"
     ACTIVE = "active"  # Legacy compatibility
     OFFLINE = "offline"
+    ZOMBIE = "zombie"
 
 
 class Employee:
@@ -498,6 +499,11 @@ class Employee:
             backend_keywords = ["api", "db", "database", "python", "backend", "server"]
             return any(kw in title for kw in backend_keywords)
 
+        # Janitor matching
+        if "janitor" in role:
+            janitor_keywords = ["cleanup", "zombie", "clean", "janitor", "orphan"]
+            return any(kw in title for kw in janitor_keywords)
+
         # Default: accept all tasks (for generic roles)
         return True
 
@@ -636,6 +642,267 @@ class Employee:
             logger.error(f"Error updating bead {bead_id}: {e}")
             return False
 
+    async def _janitor_routine(self, bead: Bead) -> None:
+        """
+        Janitor cleanup routine - scans employees.jsonl for expired agents.
+        
+        This method:
+        1. Scans employees.jsonl for agents with expired leases
+        2. Marks expired agents as 'zombie' status
+        3. Resets their beads back to 'ready' status
+        4. Notifies Slaick of cleanup actions
+        
+        Uses file locking to prevent concurrent cleanup conflicts.
+        
+        Args:
+            bead: The janitor bead being executed
+        """
+        logger.info(f"Janitor {self.agent_id} starting cleanup routine")
+
+        # Transition to BUSY
+        self._current_bead = bead
+        await self.set_status(EmployeeStatus.BUSY)
+
+        # Send CLAIM message
+        await self._send_claimed_message(bead)
+
+        zombies_cleaned = 0
+
+        try:
+            # Perform the cleanup
+            zombies_cleaned = await self._cleanup_zombie_agents()
+
+            # Update bead status to done
+            await self._update_bead_status_done(bead.id)
+
+            # Send COMPLETE message
+            await self._send_completed_message(bead)
+
+            logger.info(f"Janitor {self.agent_id} completed cleanup, "
+                       f"cleaned {zombies_cleaned} zombies")
+
+        except Exception as e:
+            logger.error(f"Error in janitor routine: {e}")
+            # Send ERROR message on failure
+            try:
+                self.slaick.append_message(
+                    from_agent=self.agent_id,
+                    to_agent="orchestrator",
+                    msg_type=MessageType.ERROR,
+                    payload={
+                        "agent_id": self.agent_id,
+                        "bead_id": bead.id,
+                        "error": str(e),
+                    },
+                )
+            except Exception:
+                pass
+
+        finally:
+            # Always transition back to IDLE
+            self._current_bead = None
+            await self.set_status(EmployeeStatus.IDLE)
+
+    async def _cleanup_zombie_agents(self) -> int:
+        """
+        Scan employees.jsonl and cleanup expired agents.
+        
+        Returns:
+            Number of zombie agents cleaned up
+        """
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self._sync_cleanup_zombies)
+
+    def _sync_cleanup_zombies(self) -> int:
+        """
+        Synchronous implementation of zombie cleanup with file locking.
+        
+        Uses POSIX file locking (flock) to prevent race conditions when multiple
+        janitors attempt cleanup concurrently. Each zombie is processed atomically.
+        
+        Returns:
+            Number of zombie agents cleaned up
+        """
+        # Ensure file exists
+        self.employees_file.touch(exist_ok=True)
+
+        # Create a lock file for exclusive access to the registry
+        lock_file_path = self.employees_file.parent / f".employees.lock"
+
+        # Open lock file (create if doesn't exist)
+        lock_fd = os.open(str(lock_file_path), os.O_RDWR | os.O_CREAT)
+
+        zombies_cleaned = 0
+
+        try:
+            # Acquire exclusive lock
+            fcntl.flock(lock_fd, fcntl.LOCK_EX)
+
+            # Read all current records
+            records = []
+            if self.employees_file.exists():
+                with open(self.employees_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            try:
+                                records.append(json.loads(line))
+                            except json.JSONDecodeError:
+                                logger.warning(f"Skipping malformed record: {line[:50]}...")
+                                continue
+
+            # Find expired agents (excluding ourselves and already marked zombies)
+            now = datetime.now(timezone.utc)
+            expired_agents = []
+
+            for record in records:
+                agent_id = record.get("agent_id")
+                
+                # Skip ourselves
+                if agent_id == self.agent_id:
+                    continue
+                
+                # Skip already marked zombies
+                if record.get("status") == EmployeeStatus.ZOMBIE.value:
+                    continue
+                
+                # Check if lease is expired
+                expires_at_str = record.get("expires_at")
+                if expires_at_str:
+                    try:
+                        # Parse ISO 8601 timestamp
+                        expires_at = datetime.fromisoformat(
+                            expires_at_str.replace("Z", "+00:00")
+                        )
+                        if expires_at < now:
+                            expired_agents.append(record)
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Invalid expires_at for {agent_id}: {e}")
+
+            # Process each expired agent
+            for record in expired_agents:
+                agent_id = record.get("agent_id")
+                bead_id = record.get("current_bead_id") or record.get("bead_id")
+                
+                logger.info(f"Janitor {self.agent_id} found zombie: {agent_id}")
+
+                # Mark as zombie in registry
+                record["status"] = EmployeeStatus.ZOMBIE.value
+                record["zombie_detected_at"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+                record["zombie_detected_by"] = self.agent_id
+
+                # Reset the agent's bead to ready if they have one
+                if bead_id:
+                    try:
+                        self._reset_bead_to_ready(bead_id)
+                        logger.info(f"Janitor {self.agent_id} reset bead {bead_id} to ready")
+                    except Exception as e:
+                        logger.error(f"Failed to reset bead {bead_id}: {e}")
+
+                # Notify Slaick
+                self._send_zombie_cleanup_message(agent_id, bead_id)
+
+                zombies_cleaned += 1
+
+            # Write updated records back to file
+            if expired_agents:
+                temp_fd, temp_path = tempfile.mkstemp(
+                    dir=self.employees_file.parent,
+                    prefix=f".employees_janitor_",
+                    suffix=".tmp",
+                )
+
+                try:
+                    with os.fdopen(temp_fd, "w", encoding="utf-8") as f:
+                        for record in records:
+                            f.write(json.dumps(record, separators=(",", ":")) + "\n")
+                        f.flush()
+                        os.fsync(f.fileno())
+
+                    # Atomic rename
+                    os.rename(temp_path, self.employees_file)
+
+                except Exception as e:
+                    # Clean up temp file on error
+                    try:
+                        os.unlink(temp_path)
+                    except FileNotFoundError:
+                        pass
+                    raise e
+
+        finally:
+            # Release lock and close lock file
+            fcntl.flock(lock_fd, fcntl.LOCK_UN)
+            os.close(lock_fd)
+
+        return zombies_cleaned
+
+    def _reset_bead_to_ready(self, bead_id: str) -> None:
+        """
+        Reset a bead status to 'ready' and clear assignee.
+        
+        Args:
+            bead_id: The bead ID to reset
+
+        Raises:
+            Exception: If bd command fails
+        """
+        import subprocess
+
+        result = subprocess.run(
+            ["bd", "update", bead_id, "--status", "ready", "--assignee", ""],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        if result.returncode != 0:
+            raise Exception(f"bd update failed: {result.stderr}")
+
+    def _send_zombie_cleanup_message(self, zombie_agent_id: str, bead_id: Optional[str]) -> None:
+        """
+        Send a cleanup notification to Slaick.
+        
+        Args:
+            zombie_agent_id: The ID of the cleaned up zombie agent
+            bead_id: The bead ID that was reset (if any)
+        """
+        try:
+            payload = {
+                "agent_id": self.agent_id,
+                "role": self.job_description.role,
+                "zombie_agent_id": zombie_agent_id,
+                "bead_id": bead_id,
+                "message": f"Cleaned up zombie {zombie_agent_id}",
+            }
+
+            self.slaick.append_message(
+                from_agent=self.agent_id,
+                to_agent="orchestrator",
+                msg_type=MessageType.PROGRESS,
+                payload=payload,
+            )
+
+            logger.info(f"Sent zombie cleanup message for {zombie_agent_id}")
+
+        except Exception as e:
+            logger.error(f"Failed to send zombie cleanup message: {e}")
+
+
+    def _is_janitor_task(self, bead: Bead) -> bool:
+        """
+        Check if a bead is a janitor cleanup task.
+
+        Args:
+            bead: The bead to check
+
+        Returns:
+            True if this is a janitor task, False otherwise
+        """
+        title = bead.title.lower()
+        janitor_keywords = ["cleanup", "zombie", "clean", "janitor", "orphan"]
+        return any(kw in title for kw in janitor_keywords)
+
     async def execute_task(self, bead: Bead) -> None:
         """
         Execute a claimed task.
@@ -648,9 +915,17 @@ class Employee:
         5. Sending COMPLETE message via Slaick
         6. Setting status back to IDLE
 
+        For janitor tasks, delegates to _janitor_routine instead.
+
         Args:
             bead: The bead to execute
         """
+        # Specialization gate: janitor tasks use dedicated routine
+        if self._is_janitor_task(bead):
+            logger.info(f"Employee {self.agent_id} detected janitor task, delegating to routine")
+            await self._janitor_routine(bead)
+            return
+
         logger.info(f"Employee {self.agent_id} starting execution of bead {bead.id}")
 
         # Transition to BUSY
