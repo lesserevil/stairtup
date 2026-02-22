@@ -167,7 +167,7 @@ Wave 4 (Integration & Safety):
   - Start an employee agent; verify its heartbeat updates in the registry every 10s.
   **Agent Profile**: `unspecified-high`
 
-- [ ] 8. Task Self-Selection & Execution Loop
+- [x] 8. Task Self-Selection & Execution Loop
   **What to do**:
   - Implement the "Work Stealing" logic: Agent polls `beads` for tasks matching its JD.
   - Implement the execution loop: Claim → Execute → Report → Finish.
@@ -175,7 +175,7 @@ Wave 4 (Integration & Safety):
   - Manually create 3 tasks; start 1 agent; verify it picks up and completes tasks one by one.
   **Agent Profile**: `ultrabrain`
 
-- [ ] 9. Message Handling & Slaick Integration
+- [x] 9. Message Handling & Slaick Integration
   **What to do**:
   - Add `Slaick` listeners to both Recruiter and Employee.
   - Implement basic "ACK" and "COMPLETE" message flows.
@@ -183,7 +183,7 @@ Wave 4 (Integration & Safety):
   - Agent sends "Task Started" message; Recruiter logs it to console.
   **Agent Profile**: `unspecified-high`
 
-- [ ] 10. Zombie Cleanup & Lease Management
+- [x] 10. Zombie Cleanup & Lease Management
   **What to do**:
   - Implement Recruiter logic to find agents with expired leases (heartbeats > 30s old).
   - Automatically reset the `bead` status to `ready` for zombie tasks.
@@ -191,7 +191,7 @@ Wave 4 (Integration & Safety):
   - Kill an active agent process; verify its task is re-queued after 60s.
   **Agent Profile**: `unspecified-high`
 
-- [ ] 11. End-to-End Swarm Integration Test
+- [x] 11. End-to-End Swarm Integration Test
   **What to do**:
   - Multi-task simulation: CEO creates 10 beads.
   - Recruiter hires 3 agents.
@@ -199,6 +199,15 @@ Wave 4 (Integration & Safety):
   **QA Scenarios**:
   - Full simulation run finishes with 10 completed beads and no errors.
   **Agent Profile**: `artistry`
+
+- [x] 12. Final QA & Documentation
+  **What to do**:
+  - Create README.md and SYSTEM_ARCHITECTURE.md
+  - Conduct final quality audit (tests, lsp)
+  - Verify swarm philosophy is correctly documented
+  **QA Scenarios**:
+  - Final docs exist and are accurate
+  **Agent Profile**: `writing`
 
 ---\n\n## Final Verification Wave
 

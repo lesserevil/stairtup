@@ -1,0 +1,420 @@
+2026-02-21 20:39:16,425 - simulation - INFO - 
+======================================================================
+2026-02-21 20:39:16,425 - simulation - INFO - SWARM INTEGRATION TEST - STARTUP COMPANY SIMULATION
+2026-02-21 20:39:16,425 - simulation - INFO - ======================================================================
+2026-02-21 20:39:16,425 - simulation - INFO - Configuration:
+2026-02-21 20:39:16,425 - simulation - INFO -   Tasks: 10
+2026-02-21 20:39:16,425 - simulation - INFO -   Max time: 120s
+2026-02-21 20:39:16,425 - simulation - INFO -   Agent execution time: 1.0s
+2026-02-21 20:39:16,425 - simulation - INFO - 
+2026-02-21 20:39:16,426 - simulation - INFO - Using temp directory: /tmp/tmpghk48pvb
+2026-02-21 20:39:16,426 - app.company.cost_tracker - INFO - CostTracker initialized: budget=$50.00, spent=$0.00, remaining=$50.00
+2026-02-21 20:39:16,426 - simulation - INFO - ======================================================================
+2026-02-21 20:39:16,426 - simulation - INFO - SIMULATION SETUP
+2026-02-21 20:39:16,426 - simulation - INFO - ======================================================================
+2026-02-21 20:39:16,426 - simulation - INFO - Created bead sim-001: Implement user authentication API endpoint [backend]
+2026-02-21 20:39:16,426 - simulation - INFO - Created bead sim-002: Create database migration for user table [backend]
+2026-02-21 20:39:16,426 - simulation - INFO - Created bead sim-003: Fix API response caching bug [backend]
+2026-02-21 20:39:16,426 - simulation - INFO - Created bead sim-004: Build Python analytics processing module [backend]
+2026-02-21 20:39:16,426 - simulation - INFO - Created bead sim-005: Refactor CSS styling for dashboard components [frontend]
+2026-02-21 20:39:16,426 - simulation - INFO - Created bead sim-006: Build React component for user profile [frontend]
+2026-02-21 20:39:16,426 - simulation - INFO - Created bead sim-007: Fix HTML accessibility issues in forms [frontend]
+2026-02-21 20:39:16,426 - simulation - INFO - Created bead sim-008: Cleanup zombie agents from failed workers [janitor]
+2026-02-21 20:39:16,426 - simulation - INFO - Created bead sim-009: Clean up orphaned task records [janitor]
+2026-02-21 20:39:16,426 - simulation - INFO - Created bead sim-010: Write documentation for API endpoints [docs]
+2026-02-21 20:39:16,426 - simulation - INFO - Created 10 test beads
+2026-02-21 20:39:16,426 - app.company.spawner - INFO - AgentSpawner initialized (employees_file=/tmp/tmpghk48pvb/employees.jsonl, mock_mode=True)
+2026-02-21 20:39:16,426 - app.company.recruiter - INFO - Recruiter initialized (poll: 1.0s fast, 3.0s slow, llm=False, cost_tracker=enabled)
+2026-02-21 20:39:16,426 - app.company.spawner - INFO - AgentSpawner initialized (employees_file=/tmp/tmpghk48pvb/employees.jsonl, mock_mode=False)
+2026-02-21 20:39:16,426 - simulation - INFO - Simulation environment ready
+2026-02-21 20:39:16,426 - simulation - INFO - 
+======================================================================
+2026-02-21 20:39:16,426 - simulation - INFO - SIMULATION START
+2026-02-21 20:39:16,426 - simulation - INFO - ======================================================================
+2026-02-21 20:39:16,426 - app.company.recruiter - INFO - Recruiter event loop started
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Processing bead sim-001: Implement user authentication API endpoint
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Generated JD for sim-001: Security Auditor (ultrabrain, complexity: 0.84, cost: $0.276)
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Posted HIRE message for security-auditor-sim-001 to handle bead sim-001
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Spawning agent for bead sim-001: Security Auditor
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Appended employee record for emp-998d1060 to /tmp/tmpghk48pvb/employees.jsonl
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Sent ACK for agent emp-998d1060 handling bead sim-001
+2026-02-21 20:39:16,427 - app.company.spawner - WARNING - Production spawn mode not yet implemented
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Successfully spawned agent emp-998d1060 (ultrabrain) for bead sim-001
+2026-02-21 20:39:16,427 - app.company.employee - INFO - Employee emp-998d1060 initialized with role: Security Auditor
+2026-02-21 20:39:16,427 - simulation - INFO - MockTaskSpawner: Spawned agent emp-998d1060 (Security Auditor) for bead sim-001
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Spawned agent emp-998d1060 for bead sim-001
+2026-02-21 20:39:16,427 - app.company.cost_tracker - INFO - Cost recorded: $0.276 for emp-998d1060 (ultrabrain). Total spent: $0.276 / $50.000
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Processing bead sim-002: Create database migration for user table
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Generated JD for sim-002: Backend Developer (deep, complexity: 0.65, cost: $0.083)
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Posted HIRE message for backend-developer-sim-002 to handle bead sim-002
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Spawning agent for bead sim-002: Backend Developer
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Appended employee record for emp-02598b26 to /tmp/tmpghk48pvb/employees.jsonl
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Sent ACK for agent emp-02598b26 handling bead sim-002
+2026-02-21 20:39:16,427 - app.company.spawner - WARNING - Production spawn mode not yet implemented
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Successfully spawned agent emp-02598b26 (deep) for bead sim-002
+2026-02-21 20:39:16,427 - app.company.employee - INFO - Employee emp-02598b26 initialized with role: Backend Developer
+2026-02-21 20:39:16,427 - simulation - INFO - MockTaskSpawner: Spawned agent emp-02598b26 (Backend Developer) for bead sim-002
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Spawned agent emp-02598b26 for bead sim-002
+2026-02-21 20:39:16,427 - app.company.cost_tracker - INFO - Cost recorded: $0.083 for emp-02598b26 (deep). Total spent: $0.359 / $50.000
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Processing bead sim-003: Fix API response caching bug
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Generated JD for sim-003: Backend Developer (deep, complexity: 0.6, cost: $0.08)
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Posted HIRE message for backend-developer-sim-003 to handle bead sim-003
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Spawning agent for bead sim-003: Backend Developer
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Appended employee record for emp-16c02f96 to /tmp/tmpghk48pvb/employees.jsonl
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Sent ACK for agent emp-16c02f96 handling bead sim-003
+2026-02-21 20:39:16,427 - app.company.spawner - WARNING - Production spawn mode not yet implemented
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Successfully spawned agent emp-16c02f96 (deep) for bead sim-003
+2026-02-21 20:39:16,427 - app.company.employee - INFO - Employee emp-16c02f96 initialized with role: Backend Developer
+2026-02-21 20:39:16,427 - simulation - INFO - MockTaskSpawner: Spawned agent emp-16c02f96 (Backend Developer) for bead sim-003
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Spawned agent emp-16c02f96 for bead sim-003
+2026-02-21 20:39:16,427 - app.company.cost_tracker - INFO - Cost recorded: $0.080 for emp-16c02f96 (deep). Total spent: $0.439 / $50.000
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Processing bead sim-004: Build Python analytics processing module
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Generated JD for sim-004: Frontend Developer (visual-engineering, complexity: 0.84, cost: $0.147)
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Posted HIRE message for frontend-developer-sim-004 to handle bead sim-004
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Spawning agent for bead sim-004: Frontend Developer
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Appended employee record for emp-3e432f7b to /tmp/tmpghk48pvb/employees.jsonl
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Sent ACK for agent emp-3e432f7b handling bead sim-004
+2026-02-21 20:39:16,427 - app.company.spawner - WARNING - Production spawn mode not yet implemented
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Successfully spawned agent emp-3e432f7b (visual-engineering) for bead sim-004
+2026-02-21 20:39:16,427 - app.company.employee - INFO - Employee emp-3e432f7b initialized with role: Frontend Developer
+2026-02-21 20:39:16,427 - simulation - INFO - MockTaskSpawner: Spawned agent emp-3e432f7b (Frontend Developer) for bead sim-004
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Spawned agent emp-3e432f7b for bead sim-004
+2026-02-21 20:39:16,427 - app.company.cost_tracker - INFO - Cost recorded: $0.147 for emp-3e432f7b (visual-engineering). Total spent: $0.586 / $50.000
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Processing bead sim-005: Refactor CSS styling for dashboard components
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Generated JD for sim-005: Frontend Developer (visual-engineering, complexity: 0.65, cost: $0.132)
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Posted HIRE message for frontend-developer-sim-005 to handle bead sim-005
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Spawning agent for bead sim-005: Frontend Developer
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Appended employee record for emp-8d154e5c to /tmp/tmpghk48pvb/employees.jsonl
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Sent ACK for agent emp-8d154e5c handling bead sim-005
+2026-02-21 20:39:16,427 - app.company.spawner - WARNING - Production spawn mode not yet implemented
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Successfully spawned agent emp-8d154e5c (visual-engineering) for bead sim-005
+2026-02-21 20:39:16,427 - app.company.employee - INFO - Employee emp-8d154e5c initialized with role: Frontend Developer
+2026-02-21 20:39:16,427 - simulation - INFO - MockTaskSpawner: Spawned agent emp-8d154e5c (Frontend Developer) for bead sim-005
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Spawned agent emp-8d154e5c for bead sim-005
+2026-02-21 20:39:16,427 - app.company.cost_tracker - INFO - Cost recorded: $0.132 for emp-8d154e5c (visual-engineering). Total spent: $0.718 / $50.000
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Processing bead sim-006: Build React component for user profile
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Generated JD for sim-006: Frontend Developer (visual-engineering, complexity: 0.84, cost: $0.147)
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Posted HIRE message for frontend-developer-sim-006 to handle bead sim-006
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Spawning agent for bead sim-006: Frontend Developer
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Appended employee record for emp-f97e30a9 to /tmp/tmpghk48pvb/employees.jsonl
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Sent ACK for agent emp-f97e30a9 handling bead sim-006
+2026-02-21 20:39:16,427 - app.company.spawner - WARNING - Production spawn mode not yet implemented
+2026-02-21 20:39:16,427 - app.company.spawner - INFO - Successfully spawned agent emp-f97e30a9 (visual-engineering) for bead sim-006
+2026-02-21 20:39:16,427 - app.company.employee - INFO - Employee emp-f97e30a9 initialized with role: Frontend Developer
+2026-02-21 20:39:16,427 - simulation - INFO - MockTaskSpawner: Spawned agent emp-f97e30a9 (Frontend Developer) for bead sim-006
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Spawned agent emp-f97e30a9 for bead sim-006
+2026-02-21 20:39:16,427 - app.company.cost_tracker - INFO - Cost recorded: $0.147 for emp-f97e30a9 (visual-engineering). Total spent: $0.865 / $50.000
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Processing bead sim-007: Fix HTML accessibility issues in forms
+2026-02-21 20:39:16,427 - app.company.recruiter - INFO - Generated JD for sim-007: Frontend Developer (visual-engineering, complexity: 0.78, cost: $0.142)
+2026-02-21 20:39:16,428 - app.company.recruiter - INFO - Posted HIRE message for frontend-developer-sim-007 to handle bead sim-007
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Spawning agent for bead sim-007: Frontend Developer
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Appended employee record for emp-6fc334e4 to /tmp/tmpghk48pvb/employees.jsonl
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Sent ACK for agent emp-6fc334e4 handling bead sim-007
+2026-02-21 20:39:16,428 - app.company.spawner - WARNING - Production spawn mode not yet implemented
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Successfully spawned agent emp-6fc334e4 (visual-engineering) for bead sim-007
+2026-02-21 20:39:16,428 - app.company.employee - INFO - Employee emp-6fc334e4 initialized with role: Frontend Developer
+2026-02-21 20:39:16,428 - simulation - INFO - MockTaskSpawner: Spawned agent emp-6fc334e4 (Frontend Developer) for bead sim-007
+2026-02-21 20:39:16,428 - app.company.recruiter - INFO - Spawned agent emp-6fc334e4 for bead sim-007
+2026-02-21 20:39:16,428 - app.company.cost_tracker - INFO - Cost recorded: $0.142 for emp-6fc334e4 (visual-engineering). Total spent: $1.007 / $50.000
+2026-02-21 20:39:16,428 - app.company.recruiter - INFO - Processing bead sim-008: Cleanup zombie agents from failed workers
+2026-02-21 20:39:16,428 - app.company.recruiter - INFO - Generated JD for sim-008: AI/ML Engineer (ultrabrain, complexity: 0.55, cost: $0.232)
+2026-02-21 20:39:16,428 - app.company.recruiter - INFO - Posted HIRE message for ai-ml-engineer-sim-008 to handle bead sim-008
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Spawning agent for bead sim-008: AI/ML Engineer
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Appended employee record for emp-9d9e16cd to /tmp/tmpghk48pvb/employees.jsonl
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Sent ACK for agent emp-9d9e16cd handling bead sim-008
+2026-02-21 20:39:16,428 - app.company.spawner - WARNING - Production spawn mode not yet implemented
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Successfully spawned agent emp-9d9e16cd (ultrabrain) for bead sim-008
+2026-02-21 20:39:16,428 - app.company.employee - INFO - Employee emp-9d9e16cd initialized with role: AI/ML Engineer
+2026-02-21 20:39:16,428 - simulation - INFO - MockTaskSpawner: Spawned agent emp-9d9e16cd (AI/ML Engineer) for bead sim-008
+2026-02-21 20:39:16,428 - app.company.recruiter - INFO - Spawned agent emp-9d9e16cd for bead sim-008
+2026-02-21 20:39:16,428 - app.company.cost_tracker - INFO - Cost recorded: $0.232 for emp-9d9e16cd (ultrabrain). Total spent: $1.239 / $50.000
+2026-02-21 20:39:16,428 - app.company.recruiter - INFO - Processing bead sim-009: Clean up orphaned task records
+2026-02-21 20:39:16,428 - app.company.recruiter - INFO - Generated JD for sim-009: Software Engineer (deep, complexity: 0.7, cost: $0.085)
+2026-02-21 20:39:16,428 - app.company.recruiter - INFO - Posted HIRE message for software-engineer-sim-009 to handle bead sim-009
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Spawning agent for bead sim-009: Software Engineer
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Appended employee record for emp-15f6e647 to /tmp/tmpghk48pvb/employees.jsonl
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Sent ACK for agent emp-15f6e647 handling bead sim-009
+2026-02-21 20:39:16,428 - app.company.spawner - WARNING - Production spawn mode not yet implemented
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Successfully spawned agent emp-15f6e647 (deep) for bead sim-009
+2026-02-21 20:39:16,428 - app.company.employee - INFO - Employee emp-15f6e647 initialized with role: Software Engineer
+2026-02-21 20:39:16,428 - simulation - INFO - MockTaskSpawner: Spawned agent emp-15f6e647 (Software Engineer) for bead sim-009
+2026-02-21 20:39:16,428 - app.company.recruiter - INFO - Spawned agent emp-15f6e647 for bead sim-009
+2026-02-21 20:39:16,428 - app.company.cost_tracker - INFO - Cost recorded: $0.085 for emp-15f6e647 (deep). Total spent: $1.324 / $50.000
+2026-02-21 20:39:16,428 - app.company.recruiter - INFO - Processing bead sim-010: Write documentation for API endpoints
+2026-02-21 20:39:16,428 - app.company.recruiter - INFO - Generated JD for sim-010: Technical Writer (quick, complexity: 0.7, cost: $0.034)
+2026-02-21 20:39:16,428 - app.company.recruiter - INFO - Posted HIRE message for technical-writer-sim-010 to handle bead sim-010
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Spawning agent for bead sim-010: Technical Writer
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Appended employee record for emp-8f0fe8b3 to /tmp/tmpghk48pvb/employees.jsonl
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Sent ACK for agent emp-8f0fe8b3 handling bead sim-010
+2026-02-21 20:39:16,428 - app.company.spawner - WARNING - Production spawn mode not yet implemented
+2026-02-21 20:39:16,428 - app.company.spawner - INFO - Successfully spawned agent emp-8f0fe8b3 (quick) for bead sim-010
+2026-02-21 20:39:16,428 - app.company.employee - INFO - Employee emp-8f0fe8b3 initialized with role: Technical Writer
+2026-02-21 20:39:16,428 - simulation - INFO - MockTaskSpawner: Spawned agent emp-8f0fe8b3 (Technical Writer) for bead sim-010
+2026-02-21 20:39:16,428 - app.company.recruiter - INFO - Spawned agent emp-8f0fe8b3 for bead sim-010
+2026-02-21 20:39:16,428 - app.company.cost_tracker - INFO - Cost recorded: $0.034 for emp-8f0fe8b3 (quick). Total spent: $1.358 / $50.000
+2026-02-21 20:39:16,428 - simulation - INFO - HIRED: Security Auditor (security-auditor-sim-001)
+2026-02-21 20:39:16,428 - simulation - INFO - HIRED: Backend Developer (backend-developer-sim-002)
+2026-02-21 20:39:16,428 - simulation - INFO - HIRED: Backend Developer (backend-developer-sim-003)
+2026-02-21 20:39:16,428 - simulation - INFO - HIRED: Frontend Developer (frontend-developer-sim-004)
+2026-02-21 20:39:16,428 - simulation - INFO - HIRED: Frontend Developer (frontend-developer-sim-005)
+2026-02-21 20:39:16,428 - simulation - INFO - HIRED: Frontend Developer (frontend-developer-sim-006)
+2026-02-21 20:39:16,428 - simulation - INFO - HIRED: Frontend Developer (frontend-developer-sim-007)
+2026-02-21 20:39:16,428 - simulation - INFO - HIRED: AI/ML Engineer (ai-ml-engineer-sim-008)
+2026-02-21 20:39:16,428 - simulation - INFO - HIRED: Software Engineer (software-engineer-sim-009)
+2026-02-21 20:39:16,428 - simulation - INFO - HIRED: Technical Writer (technical-writer-sim-010)
+2026-02-21 20:39:16,428 - simulation - INFO - Monitor: 0/10 tasks done, 10 agents active
+2026-02-21 20:39:16,428 - app.company.employee - INFO - Sent 'Agent Online' message for emp-998d1060
+2026-02-21 20:39:16,428 - app.company.employee - INFO - Employee emp-998d1060 started successfully
+2026-02-21 20:39:16,428 - app.company.employee - INFO - Sent 'Agent Online' message for emp-02598b26
+2026-02-21 20:39:16,428 - app.company.employee - INFO - Employee emp-02598b26 started successfully
+2026-02-21 20:39:16,428 - app.company.employee - INFO - Sent 'Agent Online' message for emp-16c02f96
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Employee emp-16c02f96 started successfully
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Sent 'Agent Online' message for emp-3e432f7b
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Employee emp-3e432f7b started successfully
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Sent 'Agent Online' message for emp-8d154e5c
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Employee emp-8d154e5c started successfully
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Sent 'Agent Online' message for emp-f97e30a9
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Employee emp-f97e30a9 started successfully
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Sent 'Agent Online' message for emp-6fc334e4
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Employee emp-6fc334e4 started successfully
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Sent 'Agent Online' message for emp-9d9e16cd
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Employee emp-9d9e16cd started successfully
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Sent 'Agent Online' message for emp-15f6e647
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Employee emp-15f6e647 started successfully
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Sent 'Agent Online' message for emp-8f0fe8b3
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Employee emp-8f0fe8b3 started successfully
+2026-02-21 20:39:16,429 - app.company.employee - INFO - Heartbeat loop started for emp-998d1060 (interval=2s, ttl=10s)
+2026-02-21 20:39:16,430 - app.company.employee - INFO - Work stealing loop started for emp-998d1060
+2026-02-21 20:39:16,430 - app.company.employee - INFO - Heartbeat loop started for emp-02598b26 (interval=2s, ttl=10s)
+2026-02-21 20:39:16,430 - app.company.employee - INFO - Work stealing loop started for emp-02598b26
+2026-02-21 20:39:16,431 - app.company.employee - INFO - Heartbeat loop started for emp-16c02f96 (interval=2s, ttl=10s)
+2026-02-21 20:39:16,431 - app.company.employee - INFO - Work stealing loop started for emp-16c02f96
+2026-02-21 20:39:16,431 - app.company.employee - INFO - Heartbeat loop started for emp-3e432f7b (interval=2s, ttl=10s)
+2026-02-21 20:39:16,431 - app.company.employee - INFO - Work stealing loop started for emp-3e432f7b
+2026-02-21 20:39:16,431 - app.company.employee - INFO - Heartbeat loop started for emp-8d154e5c (interval=2s, ttl=10s)
+2026-02-21 20:39:16,431 - app.company.employee - INFO - Work stealing loop started for emp-8d154e5c
+2026-02-21 20:39:16,432 - app.company.employee - INFO - Heartbeat loop started for emp-f97e30a9 (interval=2s, ttl=10s)
+2026-02-21 20:39:16,432 - app.company.employee - INFO - Work stealing loop started for emp-f97e30a9
+2026-02-21 20:39:16,432 - app.company.employee - INFO - Heartbeat loop started for emp-6fc334e4 (interval=2s, ttl=10s)
+2026-02-21 20:39:16,432 - app.company.employee - INFO - Work stealing loop started for emp-6fc334e4
+2026-02-21 20:39:16,432 - app.company.employee - INFO - Heartbeat loop started for emp-9d9e16cd (interval=2s, ttl=10s)
+2026-02-21 20:39:16,432 - app.company.employee - INFO - Work stealing loop started for emp-9d9e16cd
+2026-02-21 20:39:16,432 - app.company.employee - INFO - Heartbeat loop started for emp-15f6e647 (interval=2s, ttl=10s)
+2026-02-21 20:39:16,433 - app.company.employee - INFO - Work stealing loop started for emp-15f6e647
+2026-02-21 20:39:16,433 - app.company.employee - INFO - Heartbeat loop started for emp-8f0fe8b3 (interval=2s, ttl=10s)
+2026-02-21 20:39:16,433 - app.company.employee - INFO - Work stealing loop started for emp-8f0fe8b3
+2026-02-21 20:39:16,433 - app.company.employee - INFO - Employee emp-998d1060 found 10 ready beads
+2026-02-21 20:39:16,433 - app.company.employee - INFO - Employee emp-998d1060 attempting to claim bead sim-001: Implement user authentication API endpoint
+2026-02-21 20:39:16,433 - app.company.employee - INFO - Employee emp-998d1060 successfully claimed bead sim-001
+2026-02-21 20:39:16,433 - app.company.employee - INFO - Employee emp-998d1060 starting execution of bead sim-001
+2026-02-21 20:39:16,433 - app.company.employee - INFO - Employee emp-998d1060 status: idle -> busy
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-02598b26 found 10 ready beads
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-02598b26 attempting to claim bead sim-001: Implement user authentication API endpoint
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-02598b26 attempting to claim bead sim-002: Create database migration for user table
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-02598b26 successfully claimed bead sim-002
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-02598b26 starting execution of bead sim-002
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-02598b26 status: idle -> busy
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-16c02f96 found 10 ready beads
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-16c02f96 attempting to claim bead sim-001: Implement user authentication API endpoint
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-16c02f96 attempting to claim bead sim-002: Create database migration for user table
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-16c02f96 attempting to claim bead sim-003: Fix API response caching bug
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-16c02f96 successfully claimed bead sim-003
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-16c02f96 starting execution of bead sim-003
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-16c02f96 status: idle -> busy
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-3e432f7b found 10 ready beads
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-3e432f7b attempting to claim bead sim-004: Build Python analytics processing module
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-3e432f7b successfully claimed bead sim-004
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-3e432f7b starting execution of bead sim-004
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-3e432f7b status: idle -> busy
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-8d154e5c found 10 ready beads
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-8d154e5c attempting to claim bead sim-004: Build Python analytics processing module
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-8d154e5c attempting to claim bead sim-005: Refactor CSS styling for dashboard components
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-8d154e5c successfully claimed bead sim-005
+2026-02-21 20:39:16,434 - app.company.employee - INFO - Employee emp-8d154e5c starting execution of bead sim-005
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-8d154e5c status: idle -> busy
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-f97e30a9 found 10 ready beads
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-f97e30a9 attempting to claim bead sim-004: Build Python analytics processing module
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-f97e30a9 attempting to claim bead sim-005: Refactor CSS styling for dashboard components
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-f97e30a9 attempting to claim bead sim-006: Build React component for user profile
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-f97e30a9 successfully claimed bead sim-006
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-f97e30a9 starting execution of bead sim-006
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-f97e30a9 status: idle -> busy
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-6fc334e4 found 10 ready beads
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-6fc334e4 attempting to claim bead sim-004: Build Python analytics processing module
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-6fc334e4 attempting to claim bead sim-005: Refactor CSS styling for dashboard components
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-6fc334e4 attempting to claim bead sim-006: Build React component for user profile
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-6fc334e4 attempting to claim bead sim-007: Fix HTML accessibility issues in forms
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-6fc334e4 successfully claimed bead sim-007
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-6fc334e4 starting execution of bead sim-007
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-6fc334e4 status: idle -> busy
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-9d9e16cd found 10 ready beads
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-9d9e16cd attempting to claim bead sim-001: Implement user authentication API endpoint
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-9d9e16cd attempting to claim bead sim-002: Create database migration for user table
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-9d9e16cd attempting to claim bead sim-003: Fix API response caching bug
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-9d9e16cd attempting to claim bead sim-004: Build Python analytics processing module
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-9d9e16cd attempting to claim bead sim-005: Refactor CSS styling for dashboard components
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-9d9e16cd attempting to claim bead sim-006: Build React component for user profile
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-9d9e16cd attempting to claim bead sim-007: Fix HTML accessibility issues in forms
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-9d9e16cd attempting to claim bead sim-008: Cleanup zombie agents from failed workers
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-9d9e16cd successfully claimed bead sim-008
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-9d9e16cd detected janitor task, delegating to routine
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Janitor emp-9d9e16cd starting cleanup routine
+2026-02-21 20:39:16,435 - app.company.employee - INFO - Employee emp-9d9e16cd status: idle -> busy
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-15f6e647 found 10 ready beads
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-15f6e647 attempting to claim bead sim-001: Implement user authentication API endpoint
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-15f6e647 attempting to claim bead sim-002: Create database migration for user table
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-15f6e647 attempting to claim bead sim-003: Fix API response caching bug
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-15f6e647 attempting to claim bead sim-004: Build Python analytics processing module
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-15f6e647 attempting to claim bead sim-005: Refactor CSS styling for dashboard components
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-15f6e647 attempting to claim bead sim-006: Build React component for user profile
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-15f6e647 attempting to claim bead sim-007: Fix HTML accessibility issues in forms
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-15f6e647 attempting to claim bead sim-008: Cleanup zombie agents from failed workers
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-15f6e647 attempting to claim bead sim-009: Clean up orphaned task records
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-15f6e647 successfully claimed bead sim-009
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-15f6e647 detected janitor task, delegating to routine
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Janitor emp-15f6e647 starting cleanup routine
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-15f6e647 status: idle -> busy
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-8f0fe8b3 found 10 ready beads
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-8f0fe8b3 attempting to claim bead sim-001: Implement user authentication API endpoint
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-8f0fe8b3 attempting to claim bead sim-002: Create database migration for user table
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-8f0fe8b3 attempting to claim bead sim-003: Fix API response caching bug
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-8f0fe8b3 attempting to claim bead sim-004: Build Python analytics processing module
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-8f0fe8b3 attempting to claim bead sim-005: Refactor CSS styling for dashboard components
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-8f0fe8b3 attempting to claim bead sim-006: Build React component for user profile
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-8f0fe8b3 attempting to claim bead sim-007: Fix HTML accessibility issues in forms
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-8f0fe8b3 attempting to claim bead sim-008: Cleanup zombie agents from failed workers
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-8f0fe8b3 attempting to claim bead sim-009: Clean up orphaned task records
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-8f0fe8b3 attempting to claim bead sim-010: Write documentation for API endpoints
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-8f0fe8b3 successfully claimed bead sim-010
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-8f0fe8b3 starting execution of bead sim-010
+2026-02-21 20:39:16,436 - app.company.employee - INFO - Employee emp-8f0fe8b3 status: idle -> busy
+2026-02-21 20:39:16,472 - app.company.employee - INFO - Sent CLAIM message for bead sim-001
+2026-02-21 20:39:16,472 - app.company.employee - INFO - Employee emp-998d1060 executing bead sim-001 (simulated work for 1.0s)
+2026-02-21 20:39:16,481 - app.company.employee - INFO - Sent CLAIM message for bead sim-002
+2026-02-21 20:39:16,481 - app.company.employee - INFO - Employee emp-02598b26 executing bead sim-002 (simulated work for 1.0s)
+2026-02-21 20:39:16,485 - app.company.employee - INFO - Sent CLAIM message for bead sim-003
+2026-02-21 20:39:16,485 - app.company.employee - INFO - Employee emp-16c02f96 executing bead sim-003 (simulated work for 1.0s)
+2026-02-21 20:39:16,489 - app.company.employee - INFO - Sent CLAIM message for bead sim-004
+2026-02-21 20:39:16,489 - app.company.employee - INFO - Employee emp-3e432f7b executing bead sim-004 (simulated work for 1.0s)
+2026-02-21 20:39:16,493 - app.company.employee - INFO - Sent CLAIM message for bead sim-005
+2026-02-21 20:39:16,493 - app.company.employee - INFO - Employee emp-8d154e5c executing bead sim-005 (simulated work for 1.0s)
+2026-02-21 20:39:16,497 - app.company.employee - INFO - Sent CLAIM message for bead sim-006
+2026-02-21 20:39:16,497 - app.company.employee - INFO - Employee emp-f97e30a9 executing bead sim-006 (simulated work for 1.0s)
+2026-02-21 20:39:16,501 - app.company.employee - INFO - Sent CLAIM message for bead sim-007
+2026-02-21 20:39:16,501 - app.company.employee - INFO - Employee emp-6fc334e4 executing bead sim-007 (simulated work for 1.0s)
+2026-02-21 20:39:16,506 - app.company.employee - INFO - Sent CLAIM message for bead sim-008
+2026-02-21 20:39:16,510 - app.company.employee - INFO - Sent CLAIM message for bead sim-009
+2026-02-21 20:39:16,516 - app.company.employee - INFO - Sent CLAIM message for bead sim-010
+2026-02-21 20:39:16,516 - app.company.employee - INFO - Employee emp-8f0fe8b3 executing bead sim-010 (simulated work for 1.0s)
+2026-02-21 20:39:16,516 - simulation - INFO - [MOCK] Updated bead sim-008 status to done
+2026-02-21 20:39:16,516 - app.company.employee - INFO - Sent COMPLETE message for bead sim-008
+2026-02-21 20:39:16,516 - app.company.employee - INFO - Janitor emp-9d9e16cd completed cleanup, cleaned 0 zombies
+2026-02-21 20:39:16,516 - app.company.employee - INFO - Employee emp-9d9e16cd status: busy -> idle
+2026-02-21 20:39:16,516 - simulation - INFO - [MOCK] Updated bead sim-009 status to done
+2026-02-21 20:39:16,516 - app.company.employee - INFO - Sent COMPLETE message for bead sim-009
+2026-02-21 20:39:16,516 - app.company.employee - INFO - Janitor emp-15f6e647 completed cleanup, cleaned 0 zombies
+2026-02-21 20:39:16,516 - app.company.employee - INFO - Employee emp-15f6e647 status: busy -> idle
+2026-02-21 20:39:17,473 - simulation - INFO - [MOCK] Updated bead sim-001 status to done
+2026-02-21 20:39:17,473 - app.company.employee - INFO - Sent COMPLETE message for bead sim-001
+2026-02-21 20:39:17,473 - app.company.employee - INFO - Employee emp-998d1060 completed bead sim-001
+2026-02-21 20:39:17,473 - app.company.employee - INFO - Employee emp-998d1060 status: busy -> idle
+2026-02-21 20:39:17,481 - simulation - INFO - [MOCK] Updated bead sim-002 status to done
+2026-02-21 20:39:17,482 - app.company.employee - INFO - Sent COMPLETE message for bead sim-002
+2026-02-21 20:39:17,482 - app.company.employee - INFO - Employee emp-02598b26 completed bead sim-002
+2026-02-21 20:39:17,482 - app.company.employee - INFO - Employee emp-02598b26 status: busy -> idle
+2026-02-21 20:39:17,485 - simulation - INFO - [MOCK] Updated bead sim-003 status to done
+2026-02-21 20:39:17,485 - app.company.employee - INFO - Sent COMPLETE message for bead sim-003
+2026-02-21 20:39:17,485 - app.company.employee - INFO - Employee emp-16c02f96 completed bead sim-003
+2026-02-21 20:39:17,485 - app.company.employee - INFO - Employee emp-16c02f96 status: busy -> idle
+2026-02-21 20:39:17,490 - simulation - INFO - [MOCK] Updated bead sim-004 status to done
+2026-02-21 20:39:17,490 - app.company.employee - INFO - Sent COMPLETE message for bead sim-004
+2026-02-21 20:39:17,490 - app.company.employee - INFO - Employee emp-3e432f7b completed bead sim-004
+2026-02-21 20:39:17,490 - app.company.employee - INFO - Employee emp-3e432f7b status: busy -> idle
+2026-02-21 20:39:17,493 - simulation - INFO - [MOCK] Updated bead sim-005 status to done
+2026-02-21 20:39:17,493 - app.company.employee - INFO - Sent COMPLETE message for bead sim-005
+2026-02-21 20:39:17,493 - app.company.employee - INFO - Employee emp-8d154e5c completed bead sim-005
+2026-02-21 20:39:17,493 - app.company.employee - INFO - Employee emp-8d154e5c status: busy -> idle
+2026-02-21 20:39:17,497 - simulation - INFO - [MOCK] Updated bead sim-006 status to done
+2026-02-21 20:39:17,497 - app.company.employee - INFO - Sent COMPLETE message for bead sim-006
+2026-02-21 20:39:17,497 - app.company.employee - INFO - Employee emp-f97e30a9 completed bead sim-006
+2026-02-21 20:39:17,497 - app.company.employee - INFO - Employee emp-f97e30a9 status: busy -> idle
+2026-02-21 20:39:17,502 - simulation - INFO - [MOCK] Updated bead sim-007 status to done
+2026-02-21 20:39:17,502 - app.company.employee - INFO - Sent COMPLETE message for bead sim-007
+2026-02-21 20:39:17,502 - app.company.employee - INFO - Employee emp-6fc334e4 completed bead sim-007
+2026-02-21 20:39:17,502 - app.company.employee - INFO - Employee emp-6fc334e4 status: busy -> idle
+2026-02-21 20:39:17,516 - simulation - INFO - [MOCK] Updated bead sim-010 status to done
+2026-02-21 20:39:17,516 - app.company.employee - INFO - Sent COMPLETE message for bead sim-010
+2026-02-21 20:39:17,516 - app.company.employee - INFO - Employee emp-8f0fe8b3 completed bead sim-010
+2026-02-21 20:39:17,516 - app.company.employee - INFO - Employee emp-8f0fe8b3 status: busy -> idle
+2026-02-21 20:39:18,429 - simulation - INFO - All tasks completed!
+2026-02-21 20:39:18,429 - simulation - INFO - 
+======================================================================
+2026-02-21 20:39:18,429 - simulation - INFO - SIMULATION SHUTDOWN
+2026-02-21 20:39:18,429 - simulation - INFO - ======================================================================
+2026-02-21 20:39:18,429 - app.company.recruiter - INFO - Recruiter stop signal received
+2026-02-21 20:39:18,429 - app.company.recruiter - INFO - Recruiter event loop cancelled
+2026-02-21 20:39:18,429 - app.company.recruiter - INFO - Recruiter event loop stopped
+2026-02-21 20:39:18,429 - simulation - INFO - Agent emp-998d1060 received cancellation signal
+2026-02-21 20:39:18,429 - app.company.employee - INFO - Shutting down employee emp-998d1060
+2026-02-21 20:39:18,429 - simulation - INFO - Agent emp-02598b26 received cancellation signal
+2026-02-21 20:39:18,429 - app.company.employee - INFO - Shutting down employee emp-02598b26
+2026-02-21 20:39:18,429 - simulation - INFO - Agent emp-16c02f96 received cancellation signal
+2026-02-21 20:39:18,429 - app.company.employee - INFO - Shutting down employee emp-16c02f96
+2026-02-21 20:39:18,429 - simulation - INFO - Agent emp-3e432f7b received cancellation signal
+2026-02-21 20:39:18,429 - app.company.employee - INFO - Shutting down employee emp-3e432f7b
+2026-02-21 20:39:18,429 - simulation - INFO - Agent emp-8d154e5c received cancellation signal
+2026-02-21 20:39:18,430 - app.company.employee - INFO - Shutting down employee emp-8d154e5c
+2026-02-21 20:39:18,430 - simulation - INFO - Agent emp-f97e30a9 received cancellation signal
+2026-02-21 20:39:18,430 - app.company.employee - INFO - Shutting down employee emp-f97e30a9
+2026-02-21 20:39:18,430 - simulation - INFO - Agent emp-6fc334e4 received cancellation signal
+2026-02-21 20:39:18,430 - app.company.employee - INFO - Shutting down employee emp-6fc334e4
+2026-02-21 20:39:18,430 - simulation - INFO - Agent emp-9d9e16cd received cancellation signal
+2026-02-21 20:39:18,430 - app.company.employee - INFO - Shutting down employee emp-9d9e16cd
+2026-02-21 20:39:18,430 - simulation - INFO - Agent emp-15f6e647 received cancellation signal
+2026-02-21 20:39:18,430 - app.company.employee - INFO - Shutting down employee emp-15f6e647
+2026-02-21 20:39:18,430 - simulation - INFO - Agent emp-8f0fe8b3 received cancellation signal
+2026-02-21 20:39:18,430 - app.company.employee - INFO - Shutting down employee emp-8f0fe8b3
+2026-02-21 20:39:18,447 - app.company.employee - INFO - Employee emp-998d1060 shutdown complete
+2026-02-21 20:39:18,452 - app.company.employee - INFO - Employee emp-16c02f96 shutdown complete
+2026-02-21 20:39:18,456 - app.company.employee - INFO - Employee emp-3e432f7b shutdown complete
+2026-02-21 20:39:18,460 - app.company.employee - INFO - Employee emp-02598b26 shutdown complete
+2026-02-21 20:39:18,465 - app.company.employee - INFO - Employee emp-8d154e5c shutdown complete
+2026-02-21 20:39:18,470 - app.company.employee - INFO - Employee emp-f97e30a9 shutdown complete
+2026-02-21 20:39:18,474 - app.company.employee - INFO - Employee emp-6fc334e4 shutdown complete
+2026-02-21 20:39:18,479 - app.company.employee - INFO - Employee emp-9d9e16cd shutdown complete
+2026-02-21 20:39:18,483 - app.company.employee - INFO - Employee emp-15f6e647 shutdown complete
+2026-02-21 20:39:18,487 - app.company.employee - INFO - Employee emp-8f0fe8b3 shutdown complete
+2026-02-21 20:39:18,487 - simulation - INFO - 
+======================================================================
+2026-02-21 20:39:18,487 - simulation - INFO - VERIFICATION RESULTS
+2026-02-21 20:39:18,487 - simulation - INFO - ======================================================================
+2026-02-21 20:39:18,488 - simulation - INFO - ✓ All beads done: True
+2026-02-21 20:39:18,488 - simulation - INFO - ✓ Backend didn't touch CSS: True
+2026-02-21 20:39:18,488 - simulation - INFO - ✓ Cost tracked: $1.358
+2026-02-21 20:39:18,488 - simulation - INFO - ✓ Slaick has expected types: True
+2026-02-21 20:39:18,488 - simulation - INFO -   Message counts: {'HIRE': 10, 'ACK': 10, 'PROGRESS': 10, 'CLAIM': 10, 'COMPLETE': 10}
+2026-02-21 20:39:18,488 - simulation - INFO - ✓ At least 3 agents hired: True
+2026-02-21 20:39:18,488 - simulation - INFO - ✓ No crashes simulated (janitor recovery not tested)
+2026-02-21 20:39:18,488 - simulation - INFO - 
+======================================================================
+2026-02-21 20:39:18,488 - simulation - INFO - FINAL SIMULATION REPORT
+2026-02-21 20:39:18,488 - simulation - INFO - ======================================================================
+2026-02-21 20:39:18,488 - simulation - INFO - 🎉 SIMULATION SUCCESS!
+2026-02-21 20:39:18,488 - simulation - INFO - 
+Verification Checks:
+2026-02-21 20:39:18,488 - simulation - INFO -   ✓ PASS: all_beads_done
+2026-02-21 20:39:18,488 - simulation - INFO -   ✓ PASS: backend_no_css
+2026-02-21 20:39:18,488 - simulation - INFO -   ✓ PASS: cost_tracking
+2026-02-21 20:39:18,488 - simulation - INFO -   ✓ PASS: slaick_message_types
+2026-02-21 20:39:18,488 - simulation - INFO -   ✓ PASS: agents_hired
+2026-02-21 20:39:18,488 - simulation - INFO -   ✓ PASS: janitor_recovery
+2026-02-21 20:39:18,488 - simulation - INFO - 
+Simulation Statistics:
+2026-02-21 20:39:18,488 - simulation - INFO -   tasks_created: 10
+2026-02-21 20:39:18,488 - simulation - INFO -   agents_hired: 10
+2026-02-21 20:39:18,488 - simulation - INFO -   agents_killed: 0
+2026-02-21 20:39:18,488 - simulation - INFO -   tasks_completed: 0
+2026-02-21 20:39:18,488 - simulation - INFO -   total_cost: 1.358
+2026-02-21 20:39:18,488 - simulation - INFO -   remaining_budget: 48.642
+2026-02-21 20:39:18,488 - simulation - INFO - 
+======================================================================
