@@ -211,9 +211,9 @@ Wave 4 (Integration & Safety):
 
 ---\n\n## Final Verification Wave
 
-- [ ] F1. Plan Compliance Audit (oracle)
-- [ ] F2. Code Quality & Concurrency Review (ultrabrain)
-- [ ] F3. E2E Swarm Simulation (artistry)
+- [x] F1. Plan Compliance Audit (oracle)
+- [x] F2. Code Quality & Concurrency Review (ultrabrain)
+- [x] F3. E2E Swarm Simulation (artistry)
 
 ## Success Criteria
 - [ ] Cumulative cost < $1.00 for simulation.

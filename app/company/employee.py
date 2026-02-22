@@ -504,6 +504,11 @@ class Employee:
             janitor_keywords = ["cleanup", "zombie", "clean", "janitor", "orphan"]
             return any(kw in title for kw in janitor_keywords)
 
+        # Auditor matching
+        if "auditor" in role:
+            auditor_keywords = ["audit", "cost", "efficiency", "performance", "analysis"]
+            return any(kw in title for kw in auditor_keywords)
+
         # Default: accept all tasks (for generic roles)
         return True
 
@@ -903,6 +908,232 @@ class Employee:
         janitor_keywords = ["cleanup", "zombie", "clean", "janitor", "orphan"]
         return any(kw in title for kw in janitor_keywords)
 
+    def _is_auditor_task(self, bead: Bead) -> bool:
+        """
+        Check if a bead is an auditor analysis task.
+
+        Args:
+            bead: The bead to check
+
+        Returns:
+            True if this is an auditor task, False otherwise
+        """
+        title = bead.title.lower()
+        auditor_keywords = ["audit", "cost analysis", "efficiency review", "performance audit"]
+        return any(kw in title for kw in auditor_keywords)
+
+    async def _auditor_routine(self, bead: Bead, operations_file: Path | str = "operations.jsonl") -> None:
+        """
+        Internal Auditor analysis routine - analyzes cost trends and efficiency.
+
+        This method:
+        1. Analyzes operations.jsonl for cost trends by role/category
+        2. Calculates efficiency metrics ($ per bead completion)
+        3. Identifies high-cost outliers (e.g., ultrabrain used for simple tasks)
+        4. Posts AUDIT recommendations to Slaick for cost-saving measures
+
+        Args:
+            bead: The auditor bead being executed
+            operations_file: Path to operations.jsonl for cost analysis
+        """
+        logger.info(f"Auditor {self.agent_id} starting cost analysis routine")
+
+        # Transition to BUSY
+        self._current_bead = bead
+        await self.set_status(EmployeeStatus.BUSY)
+
+        # Send CLAIM message
+        await self._send_claimed_message(bead)
+
+        recommendations_made = 0
+
+        try:
+            # Perform the analysis
+            analysis_result = await self._analyze_cost_efficiency(operations_file)
+
+            # Post recommendations if outliers found
+            if analysis_result.get("outliers"):
+                for outlier in analysis_result["outliers"]:
+                    self._send_audit_recommendation(outlier)
+                    recommendations_made += 1
+
+            # Update bead status to done
+            await self._update_bead_status_done(bead.id)
+
+            # Send COMPLETE message
+            await self._send_completed_message(bead)
+
+            logger.info(f"Auditor {self.agent_id} completed analysis, "
+                       f"made {recommendations_made} recommendations")
+
+        except Exception as e:
+            logger.error(f"Error in auditor routine: {e}")
+            # Send ERROR message on failure
+            try:
+                self.slaick.append_message(
+                    from_agent=self.agent_id,
+                    to_agent="orchestrator",
+                    msg_type=MessageType.ERROR,
+                    payload={
+                        "agent_id": self.agent_id,
+                        "bead_id": bead.id,
+                        "error": str(e),
+                    },
+                )
+            except Exception:
+                pass
+
+        finally:
+            # Always transition back to IDLE
+            self._current_bead = None
+            await self.set_status(EmployeeStatus.IDLE)
+
+    async def _analyze_cost_efficiency(self, operations_file: Path | str) -> dict:
+        """
+        Analyze cost efficiency from operations.jsonl.
+
+        Calculates:
+        - Total spend by category/role
+        - Efficiency metrics ($ per completed bead)
+        - High-cost outliers (>2x median cost for category)
+
+        Returns:
+            Dictionary with analysis results and outliers
+        """
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self._sync_analyze_costs, operations_file)
+
+    def _sync_analyze_costs(self, operations_file: Path | str) -> dict:
+        """
+        Synchronous cost analysis implementation.
+
+        Args:
+            operations_file: Path to operations.jsonl
+
+        Returns:
+            Analysis results with outliers and recommendations
+        """
+        ops_path = Path(operations_file)
+        costs_by_category: dict[str, list[dict]] = {}
+        total_costs: dict[str, float] = {}
+
+        # Load and categorize costs
+        if ops_path.exists():
+            try:
+                with open(ops_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            entry = json.loads(line)
+                            category = entry.get("category", "unknown")
+                            cost = entry.get("cost", 0.0)
+                            agent_id = entry.get("agent_id", "unknown")
+
+                            if category not in costs_by_category:
+                                costs_by_category[category] = []
+                                total_costs[category] = 0.0
+
+                            costs_by_category[category].append({
+                                "agent_id": agent_id,
+                                "cost": cost,
+                                "operation": entry.get("operation", "spawn"),
+                                "timestamp": entry.get("timestamp"),
+                            })
+                            total_costs[category] += cost
+                        except json.JSONDecodeError:
+                            continue
+            except Exception as e:
+                logger.warning(f"Error reading operations file: {e}")
+
+        # Calculate outliers (roles costing >2x median for their category)
+        outliers = []
+        for category, entries in costs_by_category.items():
+            if len(entries) < 3:
+                continue
+
+            costs = [e["cost"] for e in entries]
+            median_cost = sorted(costs)[len(costs) // 2]
+
+            for entry in entries:
+                if entry["cost"] > median_cost * 2:
+                    efficiency_score = median_cost / entry["cost"] if entry["cost"] > 0 else 0
+                    outliers.append({
+                        "category": category,
+                        "agent_id": entry["agent_id"],
+                        "cost": entry["cost"],
+                        "median_cost": median_cost,
+                        "efficiency_score": round(efficiency_score, 2),
+                        "recommendation": self._generate_recommendation(category, entry["cost"], median_cost),
+                    })
+
+        return {
+            "total_costs": total_costs,
+            "costs_by_category": {k: len(v) for k, v in costs_by_category.items()},
+            "outliers": outliers,
+            "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+    def _generate_recommendation(self, category: str, cost: float, median_cost: float) -> str:
+        """
+        Generate a recommendation for a cost outlier.
+
+        Args:
+            category: The role/category
+            cost: Actual cost
+            median_cost: Median cost for this category
+
+        Returns:
+            Recommendation string
+        """
+        ratio = cost / median_cost if median_cost > 0 else 0
+
+        if category in ["ultrabrain", "expensive", "premium"]:
+            return f"Consider downgrading from {category} to 'deep' or 'quick' category. " \
+                   f"Current cost (${cost:.3f}) is {ratio:.1f}x median (${median_cost:.3f})."
+
+        if ratio > 3.0:
+            return f"High-cost outlier detected. Consider task batching or model downgrade. " \
+                   f"Cost (${cost:.3f}) is {ratio:.1f}x category median (${median_cost:.3f})."
+
+        return f"Review resource allocation for {category}. " \
+               f"Cost (${cost:.3f}) exceeds median (${median_cost:.3f}) by {ratio:.1f}x."
+
+    def _send_audit_recommendation(self, outlier: dict) -> None:
+        """
+        Send an audit recommendation message to Slaick.
+
+        Args:
+            outlier: Outlier dict with recommendation details
+        """
+        try:
+            payload = {
+                "agent_id": self.agent_id,
+                "role": self.job_description.role,
+                "type": "AUDIT",
+                "category": outlier["category"],
+                "target_agent": outlier["agent_id"],
+                "cost": outlier["cost"],
+                "median_cost": outlier["median_cost"],
+                "efficiency_score": outlier["efficiency_score"],
+                "recommendation": outlier["recommendation"],
+                "message": f"AUDIT: {outlier['category']} role shows cost inefficiency",
+            }
+
+            self.slaick.append_message(
+                from_agent=self.agent_id,
+                to_agent="recruiter",
+                msg_type=MessageType.AUDIT,
+                payload=payload,
+            )
+
+            logger.info(f"Sent AUDIT recommendation for {outlier['agent_id']} "
+                       f"({outlier['category']}: ${outlier['cost']:.3f})")
+
+        except Exception as e:
+            logger.error(f"Failed to send audit recommendation: {e}")
+
     async def execute_task(self, bead: Bead) -> None:
         """
         Execute a claimed task.
@@ -924,6 +1155,12 @@ class Employee:
         if self._is_janitor_task(bead):
             logger.info(f"Employee {self.agent_id} detected janitor task, delegating to routine")
             await self._janitor_routine(bead)
+            return
+
+        # Specialization gate: auditor tasks use dedicated routine
+        if self._is_auditor_task(bead):
+            logger.info(f"Employee {self.agent_id} detected auditor task, delegating to routine")
+            await self._auditor_routine(bead)
             return
 
         logger.info(f"Employee {self.agent_id} starting execution of bead {bead.id}")

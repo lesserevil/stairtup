@@ -23,6 +23,7 @@ class MessageType(str, Enum):
     PROGRESS = "PROGRESS"
     COMPLETE = "COMPLETE"
     ERROR = "ERROR"
+    AUDIT = "AUDIT"
 
 
 class Slaick:
