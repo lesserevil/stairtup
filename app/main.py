@@ -4,13 +4,17 @@ Agent Company Swarm - Main FastAPI Application
 This module initializes the FastAPI application for the multi-agent company system.
 """
 
+import json
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from pathlib import Path
+from typing import Any, AsyncGenerator
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+
+from app.openai_compat import router as openai_router
 
 
 @asynccontextmanager
@@ -54,10 +58,48 @@ def create_app() -> FastAPI:
     # Templates configuration
     templates = Jinja2Templates(directory="templates")
 
+    def read_employees_jsonl() -> list[dict[str, Any]]:
+        """Read and parse the employees.jsonl file."""
+        employees_path = Path("employees.jsonl")
+        employees = []
+
+        if not employees_path.exists():
+            return employees
+
+        try:
+            with open(employees_path, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and line != "[]":
+                        try:
+                            record = json.loads(line)
+                            employees.append(record)
+                        except json.JSONDecodeError:
+                            continue
+        except Exception:
+            pass
+
+        return employees
+
     @app.get("/", response_class=HTMLResponse)
     async def root(request: Request) -> HTMLResponse:
         """
-        Root endpoint returning the main dashboard.
+        Root endpoint returning the landing page.
+
+        Args:
+            request: FastAPI request object
+
+        Returns:
+            HTML response with the landing page template
+        """
+        return templates.TemplateResponse(
+            "index.html", {"request": request, "title": "Agent Company Swarm"}
+        )
+
+    @app.get("/dashboard", response_class=HTMLResponse)
+    async def dashboard(request: Request) -> HTMLResponse:
+        """
+        CEO Dashboard endpoint with live office view and Slaick feed.
 
         Args:
             request: FastAPI request object
@@ -65,8 +107,18 @@ def create_app() -> FastAPI:
         Returns:
             HTML response with the dashboard template
         """
+        employees = read_employees_jsonl()
+        active_employees = [emp for emp in employees if emp.get("status") == "active"]
+
         return templates.TemplateResponse(
-            "index.html", {"request": request, "title": "Agent Company Swarm"}
+            "dashboard.html",
+            {
+                "request": request,
+                "title": "Agent Company Swarm",
+                "employees": active_employees,
+                "employee_count": len(active_employees),
+                "model_count": len(active_employees),
+            },
         )
 
     @app.get("/health")
@@ -79,6 +131,9 @@ def create_app() -> FastAPI:
         """
         return {"status": "healthy", "service": "agent-company-swarm"}
 
+    # Mount the OpenAI-compatible API router under /api prefix
+    app.include_router(openai_router, prefix="/api")
+
     return app
 
 
@@ -89,4 +144,5 @@ app = create_app()
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    # Default to port 9754 as requested by the CEO
+    uvicorn.run(app, host="0.0.0.0", port=9754, reload=True)

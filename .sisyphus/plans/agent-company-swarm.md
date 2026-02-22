@@ -209,6 +209,31 @@ Wave 4 (Integration & Safety):
   - Final docs exist and are accurate
   **Agent Profile**: `writing`
 
+- [x] 13. OpenAI-Compatible API Layer
+  **What to do**:
+  - Implement /v1/models and /v1/chat/completions
+  - Route completions to active employee agents
+  **QA Scenarios**:
+  - External curl to models endpoint returns employee list
+  **Agent Profile**: `deep`
+
+- [x] 14. CEO Live Dashboard (HTMX)
+  **What to do**:
+  - Build HTMX "Office Floor" dashboard
+  - Implement live Slaick tailing via polling
+  **QA Scenarios**:
+  - Dashboard displays live message feed
+  **Agent Profile**: `visual-engineering`
+
+- [x] 15. recursive Self-Improvement (Internal Auditor agent)
+  **What to do**:
+  - Add _auditor_routine() to Employee runtime
+  - Analyze operations.jsonl to detect high-cost model outliers
+  - Generate structured AUDIT recommendations via Slaick
+  **QA Scenarios**:
+  - 21 tests pass; Auditor detects expensive outliers
+  **Agent Profile**: `deep`
+
 ---\n\n## Final Verification Wave
 
 - [x] F1. Plan Compliance Audit (oracle)

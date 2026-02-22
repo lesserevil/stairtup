@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - CEO Dashboard</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwwgUagKOQW/zyKjU1u9A9j9/25T7yKtP+9Z00/7o00/0" crossorigin="anonymous"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-bottom: 2px solid #3b82f6;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: #94a3b8;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Layout */
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Panel Styles */
+        .panel {
+            background: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #252f47;
+            padding: 15px 20px;
+            border-bottom: 1px solid #334155;
+            font-weight: 600;
+            font-size: 1.1em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header .badge {
+            background: #3b82f6;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 500;
+        }
+
+        .panel-content {
+            padding: 20px;
+        }
+
+        /* Office Floor - Employees Grid */
+        .employees-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .employee-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 15px;
+            transition: all 0.2s ease;
+        }
+
+        .employee-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+
+        .employee-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .employee-id {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            color: #64748b;
+        }
+
+        .employee-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #10b981;
+        }
+
+        .employee-status.idle {
+            background-color: #f59e0b;
+        }
+
+        .employee-status.busy {
+            background-color: #ef4444;
+        }
+
+        .employee-role {
+            font-weight: 600;
+            color: #f8fafc;
+            margin-bottom: 5px;
+        }
+
+        .employee-meta {
+            font-size: 0.85em;
+            color: #94a3b8;
+            margin-bottom: 3px;
+        }
+
+        .employee-category {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 500;
+            margin-top: 8px;
+        }
+
+        .category-ultrabrain {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .category-visual-engineering {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .category-deep {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        /* Slaick Feed */
+        .slaick-container {
+            height: 600px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .slaick-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .slaick-container::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        .slaick-container::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        .slaick-message {
+            padding: 10px 12px;
+            border-bottom: 1px solid #252f47;
+            display: grid;
+            grid-template-columns: 60px 70px 100px 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .slaick-message:hover {
+            background: #252f47;
+        }
+
+        .slaick-time {
+            color: #64748b;
+            font-size: 0.9em;
+        }
+
+        .slaick-type {
+            font-weight: 600;
+            font-size: 0.85em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .slaick-sender {
+            color: #94a3b8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .slaick-content {
+            color: #e2e8f0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Message Type Colors */
+        .slaick-hire .slaick-type {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .slaick-progress .slaick-type {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+        }
+
+        .slaick-complete .slaick-type {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+
+        .slaick-error .slaick-type {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .slaick-info .slaick-type {
+            background: rgba(148, 163, 184, 0.2);
+            color: #cbd5e1;
+        }
+
+        .slaick-empty {
+            text-align: center;
+            color: #64748b;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .slaick-container {
+                height: 400px;
+            }
+        }
+
+        /* Loading indicator */
+        .htmx-indicator {
+            display: none;
+        }
+
+        .htmx-request .htmx-indicator {
+            display: inline-block;
+        }
+
+        .polling-indicator {
+            font-size: 0.75em;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .polling-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #3b82f6;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🏢 {{ title }}</h1>
+        <div class="status">
+            <span class="status-indicator"></span>
+            <span>Live Dashboard</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="main-content">
+            <!-- Stats Bar -->
+            <div class="stats-bar">
+                <div class="stat-card">
+                    <div class="stat-value" id="active-employees">{{ employee_count }}</div>
+                    <div class="stat-label">Active Employees</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="models-available">{{ model_count }}</div>
+                    <div class="stat-label">Models Available</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">9754</div>
+                    <div class="stat-label">API Port</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">OpenAI</div>
+                    <div class="stat-label">Compatible</div>
+                </div>
+            </div>
+
+            <!-- Office Floor Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>🏢 Office Floor (Active Employees)</span>
+                    <span class="badge">{{ employee_count }}</span>
+                </div>
+                <div class="panel-content">
+                    <div class="employees-grid">
+                        {% for employee in employees %}
+                        <div class="employee-card">
+                            <div class="employee-header">
+                                <span class="employee-id">{{ employee.agent_id }}</span>
+                                <span class="employee-status {{ employee.status }}"></span>
+                            </div>
+                            <div class="employee-role">{{ employee.role }}</div>
+                            <div class="employee-meta">📋 {{ employee.bead_id }}</div>
+                            <div class="employee-meta">🕐 {{ employee.hired_at[:19] }}</div>
+                            <span class="employee-category category-{{ employee.category }}">
+                                {{ employee.category }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if not employees %}
+                    <div style="text-align: center; color: #64748b; padding: 40px;">
+                        No active employees found. The office is empty! 👻
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Slaick Live Feed Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <span>💬 Slaick Live Feed</span>
+                <div class="polling-indicator">
+                    <span class="polling-dot"></span>
+                    <span>Polling...</span>
+                </div>
+            </div>
+            <div class="panel-content" style="padding: 0;">
+                <div
+                    id="slaick-feed"
+                    class="slaick-container"
+                    hx-get="/api/v1/slaick/latest"
+                    hx-trigger="every 2s"
+                    hx-swap="innerHTML"
+                >
+                    <div class="slaick-empty">Loading messages...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden element for HTMX polling indicator -->
+    <div class="htmx-indicator" style="position: fixed; top: 20px; right: 20px;">
+        🔄
+    </div>
+</body>
+</html>
