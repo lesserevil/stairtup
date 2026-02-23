@@ -1,10 +1,4 @@
-"""
-OpenAI-compatible API endpoints for the Agent Company Swarm.
-
-This module provides OpenAI API-compatible endpoints for integration
-with existing tools and clients that expect OpenAI-style responses.
-"""
-
+import asyncio
 import json
 import time
 import uuid
@@ -16,7 +10,13 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-# Create router for OpenAI-compatible endpoints
+from app.company.slaick import MessageType, Slaick
+from app.company.message_models import ChatRequestPayload, ChatResponsePayload, ChatMetadata
+from app.company.cost_tracker import CostTracker
+
+# Initialize Slaick and CostTracker
+slaick = Slaick(file_path="slaick.jsonl")
+cost_tracker = CostTracker(budget=10.0, operations_file="operations.jsonl")
 router = APIRouter(prefix="/v1", tags=["openai-compat"])
 
 
