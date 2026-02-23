@@ -5,7 +5,9 @@ This module initializes the FastAPI application for the multi-agent company syst
 """
 
 import json
+import subprocess
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -15,6 +17,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.openai_compat import router as openai_router
+from app.company.workspace_manager import WorkspaceManager
+import click
 
 
 @asynccontextmanager
@@ -31,7 +35,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     for filename in data_files:
         filepath = Path(filename)
         if not filepath.exists():
-            filepath.write_text("[]\n")
+            filepath.touch()
 
     yield
 
@@ -131,6 +135,74 @@ def create_app() -> FastAPI:
         """
         return {"status": "healthy", "service": "agent-company-swarm"}
 
+    @app.post("/api/tasks/create")
+    async def create_task(request: Request) -> dict[str, str]:
+        """
+        Create a new task (bead) via HTMX.
+        
+        Returns:
+            Dictionary with success message
+        """
+        try:
+            data = await request.json()
+            title = data.get("title", "")
+            description = data.get("description", "")
+            
+            if not title:
+                return {"status": "error", "message": "Title is required"}
+            
+            # Create bead using bd CLI
+            import subprocess
+            result = subprocess.run(
+                ["bd", "create", "--title", title, "--description", description],
+                capture_output=True,
+                text=True,
+                cwd="/home/shedwards/src/stairtup"
+            )
+            
+            if result.returncode == 0:
+                return {"status": "success", "message": f"Task '{title}' created successfully"}
+            else:
+                return {"status": "error", "message": result.stderr}
+                
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+    
+    @app.get("/api/tasks/form", response_class=HTMLResponse)
+    async def get_task_form(request: Request) -> HTMLResponse:
+        """
+        Return the task creation form HTML for HTMX.
+        
+        Returns:
+            HTML form for creating tasks
+        """
+        html_content = """
+        <div id="task-creator" style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+            <h3 style="margin-top: 0; color: #f8fafc;">📝 Create New Task</h3>
+            <form hx-post="/api/tasks/create" hx-target="#task-result" hx-swap="innerHTML">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #94a3b8;">Title:</label>
+                    <input type="text" name="title" required 
+                           style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; 
+                                  border-radius: 6px; color: #f8fafc; box-sizing: border-box;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #94a3b8;">Description:</label>
+                    <textarea name="description" rows="3"
+                              style="width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; 
+                                     border-radius: 6px; color: #f8fafc; box-sizing: border-box;"></textarea>
+                </div>
+                <button type="submit" 
+                        style="background: #3b82f6; color: white; border: none; padding: 10px 20px; 
+                               border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    Create Task
+                </button>
+                <div id="task-result" style="margin-top: 15px;"></div>
+            </form>
+        </div>
+        """
+        return HTMLResponse(content=html_content)
+
     # Mount the OpenAI-compatible API router under /api prefix
     app.include_router(openai_router, prefix="/api")
 
@@ -141,8 +213,152 @@ def create_app() -> FastAPI:
 app = create_app()
 
 
-if __name__ == "__main__":
-    import uvicorn
+@click.group()
+def cli():
+    """Main CLI entry point for Agent Company Swarm tools."""
+    pass
 
-    # Default to port 9754 as requested by the CEO
-    uvicorn.run(app, host="0.0.0.0", port=9754, reload=True)
+
+@cli.group()
+def product():
+    """Manage products in the workspace."""
+    pass
+
+
+@cli.group()
+def project():
+    """Manage projects in the workspace."""
+    pass
+
+
+@product.command()
+@click.argument("url")
+def add(url: str):
+    """Add a new product from a Git repository URL."""
+    # Extract product_id from URL (last part after last '/')
+    product_id = url.rstrip("/").split("/")[-1].lower()
+    product_name = product_id
+
+    # Check if product already exists
+    try:
+        existing_products = WorkspaceManager.list_active_products()
+        for p in existing_products:
+            if p.name == product_id:
+                click.echo(f"Error: Product '{product_id}' already exists.", err=True)
+                raise SystemExit(1)
+    except FileNotFoundError:
+        # products.jsonl doesn't exist yet, that's fine
+        pass
+
+    # Define paths
+    checkout_path = Path(f"products/{product_id}/checkout")
+    beads_path = Path(f"products/{product_id}/beads")
+    employees_file = Path(f"products/{product_id}/employees.jsonl")
+
+    # Clone the repository
+    try:
+        subprocess.run(
+            ["git", "clone", url, str(checkout_path)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as e:
+        click.echo(f"Error cloning repository: {e.stderr}", err=True)
+        raise SystemExit(1)
+
+    # Create product directory structure
+    WorkspaceManager.create_product_structure(product_id, product_name)
+
+    # Register the product in products.jsonl
+    products_file = Path("products.jsonl")
+    new_product = {
+        "id": 1,  # Simple ID assignment - could be improved
+        "name": product_id,
+        "git_url": url,
+        "checkout_path": str(checkout_path),
+        "beads_path": str(beads_path),
+        "employees_file": str(employees_file),
+        "status": "active",
+        "created_at": datetime.now().isoformat(),
+    }
+
+    # Find the next available ID
+    if products_file.exists():
+        with open(products_file, "r") as f:
+            lines = [l.strip() for l in f if l.strip()]
+            if lines:
+                try:
+                    last_product = json.loads(lines[-1])
+                    new_product["id"] = last_product.get("id", 0) + 1
+                except json.JSONDecodeError:
+                    pass
+
+    # Append to products.jsonl
+    with open(products_file, "a") as f:
+        f.write(json.dumps(new_product) + "\n")
+
+    click.echo(f"Product '{product_id}' added successfully.")
+
+
+@project.command()
+@click.argument("product_id")
+@click.argument("name")
+def create(product_id: str, name: str):
+    """Create a new project under a product."""
+    # Verify product exists
+    try:
+        active_products = WorkspaceManager.list_active_products()
+        product = next(p for p in active_products if p.name == product_id)
+    except StopIteration:
+        click.echo(f"Error: Product '{product_id}' does not exist.", err=True)
+        raise SystemExit(1)
+    except FileNotFoundError:
+        click.echo("Error: products.jsonl not found.", err=True)
+        raise SystemExit(1)
+    # Generate project ID
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    project_id = f"project-{product_id}-{timestamp}"
+    # Create project record
+    project_record = {
+        "id": project_id,
+        "product_id": product_id,
+        "name": name,
+        "description": "",
+        "status": "active",
+        "deliverables": [],
+        "created_at": datetime.now().isoformat(),
+        "target_completion": None,
+    }
+    # Append to projects.jsonl
+    projects_file = Path("projects.jsonl")
+    with open(projects_file, "a") as f:
+        f.write(json.dumps(project_record) + "\n")
+    click.echo(f"Project '{project_id}' created successfully under product '{product_id}'.")
+
+
+@cli.command()
+def whoami():
+    """Show which product we're working on."""
+    pass
+
+
+import uvicorn
+
+
+# CLI command to run the server
+@cli.command()
+def run_server(port: int = 9754, reload: bool = False):
+    """Run the FastAPI server."""
+    uvicorn.run(app, host="0.0.0.0", port=port, reload=reload)
+
+
+# CLI command to show CLI help
+@cli.command()
+def help_cmd(**kwargs):
+    """Show help text."""
+    pass
+
+
+if __name__ == "__main__":
+    cli()

@@ -2,7 +2,8 @@
   "active_plan": "/home/shedwards/src/stairtup/.sisyphus/plans/agent-company-swarm.md",
   "started_at": "2026-02-22T02:15:51.923Z",
   "session_ids": [
-    "ses_37e754a40ffeRkaRXrNvsSebaG"
+    "ses_37e754a40ffeRkaRXrNvsSebaG",
+    "ses_37855b1b3ffepLn6N5KXW3AMD1"
   ],
   "plan_name": "agent-company-swarm",
   "agent": "atlas"

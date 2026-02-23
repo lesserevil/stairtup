@@ -1,0 +1,142 @@
+services:
+
+  # Main FastAPI web application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: agent-swarm-web
+    ports:
+      - "9754:9754"
+    volumes:
+      # Persist data files (JSONL databases)
+      - app-data:/app/data
+      # Mount local files for bd integration
+      - ./slaick.jsonl:/app/slaick.jsonl
+      - ./employees.jsonl:/app/employees.jsonl
+      - ./.beads:/app/.beads
+      - /home/shedwards/.local/bin/bd:/usr/local/bin/bd:ro
+      # Mount git repo for agent operations
+      - .:/app/repo:cached
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9754/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - agent-swarm-network
+
+  # Development service with hot reload
+  web-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: agent-swarm-web-dev
+    ports:
+      - "9754:9754"
+    volumes:
+      # Mount source code for hot reload
+      - ./app:/app/app
+      - ./static:/app/static
+      - ./templates:/app/templates
+      # Persist data files
+      - app-data:/app/data
+      # Mount local files for bd integration
+      - ./slaick.jsonl:/app/slaick.jsonl
+      - ./employees.jsonl:/app/employees.jsonl
+      - ./.beads:/app/.beads
+      - /home/shedwards/.local/bin/bd:/usr/local/bin/bd:ro
+      # Mount git repo for agent operations
+      - .:/app/repo:cached
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=development
+      - LOG_LEVEL=debug
+    profiles:
+      - dev
+    networks:
+      - agent-swarm-network
+
+  # Recruiter service - monitors beads and initiates hiring
+  recruiter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: agent-swarm-recruiter
+    command: python -m app.company.recruiter
+    volumes:
+      # Persist data files
+      - app-data:/app/data
+      # Mount local files for bd integration
+      - ./slaick.jsonl:/app/slaick.jsonl
+      - ./employees.jsonl:/app/employees.jsonl
+      - ./.beads:/app/.beads
+      - /home/shedwards/.local/bin/bd:/usr/local/bin/bd:ro
+      # Mount git repo for agent operations
+      - .:/app/repo:cached
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - RECRUITER_INTERVAL=60
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - agent-swarm-network
+    profiles:
+      - full
+      - workers
+
+
+  # Janitor service - cleanup and maintenance
+  janitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: agent-swarm-janitor
+    command: >
+      sh -c "while true; do
+        python -c 'from app.company.employee import cleanup_offline_employees; cleanup_offline_employees()' 2>/dev/null || true;
+        sleep 120;
+      done"
+    volumes:
+      # Persist data files
+      - app-data:/app/data
+      # Mount local files for bd integration
+      - ./slaick.jsonl:/app/slaick.jsonl
+      - ./employees.jsonl:/app/employees.jsonl
+      - ./.beads:/app/.beads
+      - /home/shedwards/.local/bin/bd:/usr/local/bin/bd:ro
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - agent-swarm-network
+    profiles:
+      - full
+      - workers
+
+volumes:
+  app-data:
+    driver: local
+
+networks:
+  agent-swarm-network:
+    driver: bridge

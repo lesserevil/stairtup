@@ -118,7 +118,9 @@ class Slaick:
                 line = line.strip()
                 if line:
                     try:
-                        messages.append(json.loads(line))
+                        parsed = json.loads(line)
+                        if isinstance(parsed, dict):
+                            messages.append(parsed)
                     except json.JSONDecodeError:
                         # Skip malformed lines
                         continue

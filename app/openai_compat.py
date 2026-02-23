@@ -279,8 +279,34 @@ async def get_slaick_latest_html() -> HTMLResponse:
     for msg in reversed(messages):  # Most recent first
         timestamp = msg.get("timestamp", "")
         msg_type = msg.get("type", "INFO")
-        sender = msg.get("sender", "system")
-        content = msg.get("content", "")
+        payload = msg.get("payload", {})
+        
+        # Get sender from 'from' field, fallback to agent_id or 'system'
+        sender = msg.get("from", "system")
+        
+        # Extract content based on message type
+        content = ""
+        if isinstance(payload, dict):
+            if msg_type.upper() == "HIRE":
+                # Show the role being hired
+                role = payload.get("role", "Unknown Role")
+                content = f"Hiring: {role}"
+            elif msg_type.upper() == "PROGRESS":
+                # Show worker's role and status
+                role = payload.get("role", "Agent")
+                status_msg = payload.get("message", "Working...")
+                content = f"[{role}] {status_msg}"
+            else:
+                # Try message, role, or stringified payload
+                content = payload.get("message") or payload.get("role") or str(payload)
+        else:
+            content = str(payload)
+        
+        # Handle potential missing keys gracefully
+        if not content:
+            content = "(no content)"
+        if not sender:
+            sender = "unknown"
 
         # Format timestamp
         try:

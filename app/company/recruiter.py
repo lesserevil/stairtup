@@ -207,6 +207,11 @@ class Recruiter:
                     "security_analysis",
                     "vulnerability_scanning",
                 ],
+                "abilities": {
+                    "reasoning": 0.9,
+                    "safety-alignment": 0.8,
+                    "world-knowledge": 0.7,
+                },
                 "category": "ultrabrain",
             },
             "frontend": {
@@ -218,12 +223,22 @@ class Recruiter:
                     "css",
                     "accessibility",
                 ],
+                "abilities": {
+                    "coding": 0.8,
+                    "language-understanding": 0.7,
+                    "creative-problem-solving": 0.9,
+                },
                 "category": "visual-engineering",
             },
             "backend": {
                 "role": "Backend Developer",
                 "description": "Build APIs and server-side functionality",
                 "capabilities": ["api_design", "database_modeling", "business_logic"],
+                "abilities": {
+                    "coding": 0.9,
+                    "reasoning": 0.8,
+                    "language-understanding": 0.7,
+                },
                 "category": "deep",
             },
             "devops": {
@@ -235,52 +250,48 @@ class Recruiter:
                     "kubernetes",
                     "automation",
                 ],
+                "abilities": {
+                    "reasoning": 0.8,
+                    "coding": 0.7,
+                    "world-knowledge": 0.9,
+                },
                 "category": "ultrabrain",
             },
             "testing": {
                 "role": "QA Engineer",
                 "description": "Write and maintain test suites for quality assurance",
                 "capabilities": ["test_automation", "test_design", "coverage_analysis"],
+                "abilities": {
+                    "coding": 0.7,
+                    "reasoning": 0.6,
+                    "language-understanding": 0.8,
+                },
                 "category": "quick",
-            },
-            "database": {
-                "role": "Database Engineer",
-                "description": "Design and optimize database schemas and queries",
-                "capabilities": ["sql", "schema_design", "performance_optimization"],
-                "category": "deep",
-            },
-            "ai": {
-                "role": "AI/ML Engineer",
-                "description": "Implement machine learning models and AI integrations",
-                "capabilities": [
-                    "llm_integration",
-                    "prompt_engineering",
-                    "model_tuning",
-                ],
-                "category": "ultrabrain",
             },
             "docs": {
                 "role": "Technical Writer",
                 "description": "Create clear documentation and guides",
                 "capabilities": ["technical_writing", "documentation", "clarity"],
+                "abilities": {
+                    "writing": 0.9,
+                    "language-understanding": 0.8,
+                    "world-knowledge": 0.6,
+                },
                 "category": "quick",
             },
         }
-
         # Default role if no keywords match
         default_role = {
             "role": "Software Engineer",
             "description": "General software development and problem solving",
             "capabilities": ["problem_solving", "coding", "debugging"],
+            "abilities": {
+                "reasoning": 0.8,
+                "coding": 0.8,
+                "creative-problem-solving": 0.7,
+            },
             "category": "deep",
         }
-
-        # Find best matching role based on keywords
-        selected_role = default_role
-        for keyword in keywords:
-            if keyword in role_mapping:
-                selected_role = role_mapping[keyword]
-                break
 
         # Calculate cost estimate based on complexity and category
         base_costs = {
@@ -296,6 +307,7 @@ class Recruiter:
             role=selected_role["role"],
             description=selected_role["description"],
             required_capabilities=selected_role["capabilities"],
+            required_abilities=selected_role["abilities"],
             suggested_category=selected_role["category"],
             cost_estimate=cost_estimate,
             complexity=round(complexity, 2),
@@ -327,14 +339,27 @@ Type: {bead.issue_type}
 Priority: {bead.priority}
 
 Generate a JSON response with this structure:
-{{
+{
     "role": "Specific role name (e.g., Security Auditor, Frontend Developer)",
     "description": "What this agent will do",
     "required_capabilities": ["capability1", "capability2"],
+    "required_abilities": {
+        "world-knowledge": 0.7,
+        "reasoning": 0.8,
+        "coding": 0.9,
+        "language-understanding": 0.6,
+        "writing": 0.5,
+        "creative-problem-solving": 0.8,
+        "safety-alignment": 0.4
+    },
     "suggested_category": "One of: quick, deep, ultrabrain, visual-engineering",
     "cost_estimate": 0.05,
     "complexity": 0.7
-}}
+}
+
+Ability guide:
+- Rate each ability from 0.0 to 1.0 based on the task requirements.
+- Provide scores for all 7 Galileo-inspired categories.
 
 Category guide:
 - quick: Simple tasks, low compute (testing, docs, small fixes)
@@ -364,6 +389,7 @@ Cost should be $0.02-0.15 based on complexity."""
                 role=data["role"],
                 description=data["description"],
                 required_capabilities=data["required_capabilities"],
+                required_abilities=data.get("required_abilities", {}),
                 suggested_category=data["suggested_category"],
                 cost_estimate=data["cost_estimate"],
                 complexity=data["complexity"],
@@ -905,3 +931,51 @@ async def run_recruiter(
         await recruiter.run()
 
     return recruiter
+
+
+async def main() -> None:
+    """
+    Entry point for running the Recruiter directly.
+    
+    Initializes Slaick and Recruiter, then runs with message listener.
+    Handles graceful shutdown on Ctrl+C.
+    """
+    import signal
+    
+    # Setup logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    # Initialize with default data files
+    slaick = Slaick(file_path="slaick.jsonl")
+    recruiter = Recruiter(
+        slaick=slaick,
+        employees_file="employees.jsonl"
+    )
+    
+    # Setup signal handlers for graceful shutdown
+    def signal_handler(sig, frame):
+        logger.info("Shutdown signal received, stopping recruiter...")
+        recruiter.stop()
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    logger.info("Starting Recruiter polling loop...")
+    print("Recruiter polling loop started")
+    
+    try:
+        await recruiter.run_with_listener()
+    except asyncio.CancelledError:
+        logger.info("Recruiter cancelled")
+    except Exception as e:
+        logger.error(f"Recruiter error: {e}")
+        raise
+    finally:
+        logger.info("Recruiter shutdown complete")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

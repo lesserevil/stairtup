@@ -26,8 +26,48 @@ The project implements a "Swarm Intelligence" approach to software development. 
 - Python 3.12+
 - `bd` (beads) issue tracker installed.
 - OpenCode environment configured.
+- Docker & Docker Compose (for containerized deployment)
 
 ### Quick Start
+
+#### Option 1: Docker (Recommended)
+
+1. **Build and run all services**:
+   ```bash
+   # Production mode - web + background services
+   docker-compose --profile full up --build
+
+   # Development mode with hot reload
+   docker-compose --profile dev up --build
+
+   # Web only (no background workers)
+   docker-compose up --build
+   ```
+
+2. **Access the application**:
+   - Web dashboard: http://localhost:9754
+   - Health check: http://localhost:9754/health
+
+3. **Run background workers separately**:
+   ```bash
+   # Only recruiter and spawner services
+   docker-compose --profile workers up
+   ```
+
+4. **View logs**:
+   ```bash
+   docker-compose logs -f web
+   docker-compose logs -f recruiter
+   docker-compose logs -f spawner
+   ```
+
+5. **Stop all services**:
+   ```bash
+   docker-compose --profile full down
+   ```
+
+#### Option 2: Local Development
+
 1. **Initialize Environment**:
    ```bash
    python3 -m venv venv

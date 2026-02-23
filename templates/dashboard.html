@@ -383,6 +383,25 @@
                 </div>
             </div>
 
+            <!-- Task Creator Panel -->
+            <div class="panel" style="margin-bottom: 20px;"
+                 hx-get="/api/tasks/form"
+                 hx-trigger="load"
+                 hx-swap="outerHTML">
+                <div class="panel-header">
+                    <span>📝 Task Creator</span>
+                    <div class="polling-indicator">
+                        <span class="polling-dot"></span>
+                        <span>Loading...</span>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div style="text-align: center; color: #64748b; padding: 20px;">
+                        Loading task creator...
+                    </div>
+                </div>
+            </div>
+
             <!-- Office Floor Panel -->
             <div class="panel">
                 <div class="panel-header">

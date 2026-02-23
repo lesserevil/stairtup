@@ -1431,3 +1431,78 @@ async def employee_runtime(
     finally:
         await emp.shutdown()
 
+
+async def main() -> None:
+    """
+    Entry point for running an Employee worker directly.
+    
+    Initializes a generic Employee agent that can handle various tasks.
+    Useful for manual testing or running a standalone worker.
+    Handles graceful shutdown on Ctrl+C.
+    """
+    import argparse
+    import signal
+    import uuid
+    
+    parser = argparse.ArgumentParser(description='Run an Employee agent')
+    parser.add_argument('--agent-id', default=None, help='Agent ID (auto-generated if not provided)')
+    parser.add_argument('--role', default='Software Engineer', help='Role for this employee')
+    parser.add_argument('--employees-file', default='employees.jsonl', help='Path to employees registry file')
+    args = parser.parse_args()
+    
+    # Setup logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    # Generate agent ID if not provided
+    agent_id = args.agent_id or f"emp-manual-{uuid.uuid4().hex[:8]}"
+    
+    # Create a generic JobDescription
+    job_description = JobDescription(
+        role=args.role,
+        description=f"Generic worker for manual testing ({args.role})",
+        required_capabilities=["general", "coding", "debugging"],
+        suggested_category="deep",
+        cost_estimate=0.05,
+        complexity=0.5,
+    )
+    
+    # Initialize Employee
+    employee = Employee(
+        agent_id=agent_id,
+        job_description=job_description,
+        employees_file=args.employees_file,
+    )
+    
+    # Setup signal handlers for graceful shutdown
+    def signal_handler(sig, frame):
+        logger.info(f"Shutdown signal received for {agent_id}, stopping employee...")
+        asyncio.create_task(employee.shutdown())
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    logger.info(f"Starting Employee {agent_id} with role: {args.role}")
+    print(f"Employee {agent_id} started (role: {args.role})")
+    print("Press Ctrl+C to stop")
+    
+    try:
+        await employee.start()
+        # Keep running until shutdown
+        while employee.is_running():
+            await asyncio.sleep(1)
+    except asyncio.CancelledError:
+        logger.info(f"Employee {agent_id} cancelled")
+    except Exception as e:
+        logger.error(f"Employee {agent_id} error: {e}")
+    finally:
+        if employee.is_running():
+            await employee.shutdown()
+        logger.info(f"Employee {agent_id} shutdown complete")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
