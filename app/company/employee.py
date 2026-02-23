@@ -610,6 +610,7 @@ class Employee:
                 from_agent=self.agent_id,
                 to_agent="orchestrator",
                 msg_type=MessageType.COMPLETE,
+                msg_type=MessageType.COMPLETE,
                 payload=payload,
             )
 
@@ -693,6 +694,7 @@ class Employee:
                 self.slaick.append_message(
                     from_agent=self.agent_id,
                     to_agent="orchestrator",
+                    msg_type=MessageType.ERROR,
                     msg_type=MessageType.ERROR,
                     payload={
                         "agent_id": self.agent_id,
@@ -974,6 +976,7 @@ class Employee:
                     from_agent=self.agent_id,
                     to_agent="orchestrator",
                     msg_type=MessageType.ERROR,
+                    msg_type=MessageType.ERROR,
                     payload={
                         "agent_id": self.agent_id,
                         "bead_id": bead.id,
@@ -1195,6 +1198,7 @@ class Employee:
                 self.slaick.append_message(
                     from_agent=self.agent_id,
                     to_agent="orchestrator",
+                    msg_type=MessageType.ERROR,
                     msg_type=MessageType.ERROR,
                     payload={
                         "agent_id": self.agent_id,
@@ -1506,3 +1510,17 @@ async def main() -> None:
 if __name__ == "__main__":
     asyncio.run(main())
 
+
+    async def _handle_chat_request(self, message: dict[str, Any]) -> None:
+        """Handle CHAT_REQUEST messages from OpenAI API.
+
+        Args:
+            message: The chat request message
+        """
+        payload = message.get("payload", {})
+        chat_request = ChatRequestPayload(**payload)
+
+        # TODO: Implement actual chat execution via OpenCode
+        logger.info(f"Received chat request from {self.agent_id}")
+        self._pending_chat_requests.append(chat_request)
+        pass
