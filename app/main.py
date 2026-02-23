@@ -206,6 +206,33 @@ def create_app() -> FastAPI:
     # Mount the OpenAI-compatible API router under /api prefix
     app.include_router(openai_router, prefix="/api")
 
+from app.company.workspace_manager import WorkspaceManager
+
+@app.get("/api/dashboard/live", tags=["dashboard"])
+async def get_dashboard_data() -> dict[str, Any]:
+    """Get live dashboard data including employees, beads, cost, and slaick messages.""")
+    workspace = WorkspaceManager()
+
+    # Get active employees
+    from app.company.employee import Employee
+    employees = Employee.get_all_active()
+
+    # Get product info
+    products = workspace.list_active_products()
+
+    # Get cost tracking
+    from app.company.cost_tracker import CostTracker
+    cost_tracker = CostTracker(budget=10.0)
+
+    return {
+        "employees": [{"employee_id": e["employee_id"], "status": e["status"]} for e in employees],
+        "employee_count": len(employees),
+        "products": [p.to_dict() for p in products],
+        "cost": {"spent": cost_tracker.get_current_spent(), "budget": 10.0},
+        "health": {"openai_api": "ready"},
+    }
+
+
     return app
 
 
