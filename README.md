@@ -1,4 +1,4 @@
-# Agent Company Swarm
+# StairtUp
 
 A self-organizing autonomous agent company that solves software engineering tasks using a market-based work-stealing philosophy.
 

@@ -1,4 +1,4 @@
-# System Architecture: Agent Company Swarm
+# System Architecture: StairtUp
 
 This document describes the technical architecture and protocols of the agent-based software development swarm.
 
