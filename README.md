@@ -97,5 +97,5 @@ The project implements a "Swarm Intelligence" approach to software development. 
 ## Monitoring & Safety
 
 - **Cost Tracking**: All agent activity is logged and categorized. A circuit breaker prevents spawning if the budget is exceeded.
-- **Heartbeats**: Active agents update their status every 30 seconds.
+- **Heartbeats**: Active agents update their status every 10 seconds.
 - **Janitor**: Automatically cleans up orphaned records and resets stalled tasks.
