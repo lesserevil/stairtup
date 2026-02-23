@@ -3,6 +3,8 @@ import json
 import time
 import uuid
 from datetime import datetime
+from functools import wraps
+import asyncio
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -353,3 +355,92 @@ async def get_slaick_latest_json(limit: int = 20) -> list[dict[str, Any]]:
         List of recent Slaick messages.
     """
     return read_slaick_jsonl(limit=limit)
+
+async def _get_chat_response(self, request_id: str, employee_id: str) -> ChatResponsePayload:
+    """
+    Poll Slaick for response from Employee agent.
+    
+    Args:
+        request_id: The request ID we're waiting for
+        employee_id: The employee agent ID
+    """
+    logger.info(f"Waiting for chat response from {employee_id}")
+    
+    try:
+        # Poll Slaick for response with timeout
+        start_time = time.time()
+        timeout = 120  # 2 minutes
+        
+        while time.time() - start_time < timeout:
+            # Look for response message
+            messages = slaick._read_messages(agent_id="orchestrator")
+            
+            for msg in messages:
+                if msg.get("from") == "orchestrator" and msg.get("type") == "CHAT_RESPONSE":
+                    return ChatResponsePayload(**msg.get("content", {}))
+            
+            await asyncio.sleep(1.0)
+        
+        logger.error(f"Timeout waiting for chat response {request_id}")
+        raise HTTPException(
+            status_code=504,
+            detail="No response from agent within timeout"
+        )
+    except Exception as e:
+        logger.error(f"Error waiting for chat response: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error waiting for response: {str(e)}"
+        )
+
+
+def _format_response(self, response: ChatResponsePayload) -> ChatCompletionResponse:
+    """
+    Format Employee response as OpenAI-compatible response.
+    
+    Args:
+        response: ChatResponsePayload from Employee
+        
+    Returns:
+        ChatCompletionResponse compatible with OpenAI API
+    """
+    return ChatCompletionResponse(
+        id=f"chatcmpl-{uuid.uuid4().hex[:12]}",
+        created=int(time.time()),
+        model=request.model,
+        choices=[
+            Choice(
+                index=0,
+                message=ChatMessage(role="assistant", content=response.content),
+                finish_reason=response.finish_reason or "stop",
+            )
+        ],
+        usage=Usage(
+            prompt_tokens=len(request.model) * 100,  # Mock token count
+            completion_tokens=0,
+            total_tokens=len(request.model) * 100,
+        ),
+    )
+
+
+@router.get("/health")
+async def get_openai_health() -> dict[str, str]:
+    """
+    Health check endpoint for OpenAI-compatible API layer.
+    
+    Returns:
+        Health status including status of AI endpoints
+    """
+    return {
+        "status": "ready",
+        "service": "stairtup-openai-api",
+        "version": "0.1.0",
+        "endpoints": {
+            "chat_completions": "active",
+            "models": "active",
+        },
+        "capabilities": {
+            "chat": True,
+            "streaming": False,  # TODO: Implement streaming
+        },
+    }
