@@ -1,4 +1,4 @@
-# Contributing to Agent Company Swarm
+# Contributing to StairtUp
 
 Thank you for your interest in contributing! This project is a self-organizing multi-agent company system. Whether you're fixing bugs, adding features, improving documentation, or spreading the word, your contribution matters.
 
@@ -551,7 +551,7 @@ Contributors are acknowledged in:
 
 ---
 
-Thank you for contributing to the Agent Company Swarm! 🚀
+Thank you for contributing to the StairtUp! 🚀
 
 #### Recruiter Settings
 
