@@ -24,6 +24,8 @@ class MessageType(str, Enum):
     COMPLETE = "COMPLETE"
     ERROR = "ERROR"
     AUDIT = "AUDIT"
+    CHAT_REQUEST = "CHAT_REQUEST"
+    CHAT_RESPONSE = "CHAT_RESPONSE"
 
 
 class Slaick:
@@ -326,7 +328,7 @@ class Slaick:
                 found_last = False
                 new_messages = []
                 for msg in messages:
-                    if msg.get('id') == last_message_id:
+                    if msg.get("id") == last_message_id:
                         found_last = True
                         continue
                     if found_last:
@@ -334,7 +336,7 @@ class Slaick:
                 messages = new_messages
 
             for msg in messages:
-                last_message_id = msg.get('id')
+                last_message_id = msg.get("id")
                 if callback:
                     callback(msg)
                 yield msg
@@ -371,7 +373,7 @@ class Slaick:
                 found = False
                 new_messages = []
                 for msg in messages:
-                    if msg.get('id') == last_id:
+                    if msg.get("id") == last_id:
                         found = True
                         continue
                     if found:
@@ -379,7 +381,7 @@ class Slaick:
                 messages = new_messages
 
             for msg in messages:
-                last_id = msg.get('id')
+                last_id = msg.get("id")
                 yield msg
 
             await asyncio.sleep(poll_interval)

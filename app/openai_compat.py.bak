@@ -5,7 +5,6 @@ This module provides OpenAI API-compatible endpoints for integration
 with existing tools and clients that expect OpenAI-style responses.
 """
 
-import asyncio
 import json
 import time
 import uuid
@@ -17,14 +16,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.company.cost_tracker import CostTracker
-from app.company.message_models import ChatRequestPayload, ChatResponsePayload
-from app.company.slaick import MessageType, Slaick
-
+# Create router for OpenAI-compatible endpoints
 router = APIRouter(prefix="/v1", tags=["openai-compat"])
-
-_slaick = Slaick()
-_cost_tracker = CostTracker()
 
 
 # Pydantic models for OpenAI API compatibility
@@ -216,144 +209,33 @@ async def create_chat_completion(
     """
     Create a chat completion using the specified employee agent.
 
-    Routes the chat request to the appropriate employee via Slaick
-    messaging system and waits for the response.
+    For now, this returns a mock response acknowledging the request.
+    In production, this would route to the actual agent for processing.
+
+    Args:
+        request: The chat completion request with model and messages.
+
+    Returns:
+        A mock chat completion response.
     """
+    # Generate a unique completion ID
     completion_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
     created = int(time.time())
-    request_id = str(uuid.uuid4())
 
+    # Get the last user message for context
     user_message = "Hello"
     for msg in reversed(request.messages):
         if msg.role == "user":
-            user_message = msg.content[:100]
+            user_message = msg.content[:100]  # First 100 chars
             break
 
-    model_id = request.model
-
-    employees = read_employees_jsonl()
-    target_agent = None
-    for emp in employees:
-        if emp.get("agent_id") == model_id:
-            target_agent = model_id
-            break
-
-    if not target_agent:
-        logger.warning(f"Agent {model_id} not found, using default agent")
-        if employees:
-            target_agent = employees[0].get("agent_id")
-        else:
-            raise HTTPException(
-                status_code=404, detail=f"No agents available to handle request"
-            )
-
-    if not _cost_tracker.can_afford(0.01, "chat"):
-        raise HTTPException(
-            status_code=429, detail="Budget exceeded. Circuit breaker tripped."
-        )
-
-    chat_request_payload = ChatRequestPayload(
-        messages=[
-            {"role": msg.role, "content": msg.content} for msg in request.messages
-        ],
-        model=request.model,
-        temperature=request.temperature or 1.0,
-        max_tokens=request.max_tokens,
-        top_p=request.top_p,
-        stream=request.stream,
-        stop=request.stop,
-        frequency_penalty=request.frequency_penalty or 0.0,
-        presence_penalty=request.presence_penalty or 0.0,
+    # Create a mock response acknowledging the model
+    response_content = (
+        f"🤖 Agent '{request.model}' received your message: \"{user_message}\"\n\n"
+        "This is a mock response. In production, this would be processed by the "
+        "actual employee agent through the Slaick messaging system.\n\n"
+        f"Parameters: temperature={request.temperature}, max_tokens={request.max_tokens}, stream={request.stream}"
     )
-
-    _slaick.append_message(
-        from_agent="api-gateway",
-        to_agent=target_agent,
-        msg_type=MessageType.CHAT_REQUEST,
-        payload={
-            "request_id": request_id,
-            "chat_request": chat_request_payload.to_dict(),
-            "reply_to": "api-gateway",
-        },
-    )
-
-    logger.info(f"Sent CHAT_REQUEST {request_id} to {target_agent}")
-
-    try:
-        response_message = await asyncio.wait_for(
-            _wait_for_chat_response(request_id, target_agent), timeout=30.0
-        )
-    except asyncio.TimeoutError:
-        raise HTTPException(
-            status_code=504, detail="Timeout waiting for agent response"
-        )
-
-    response_content = response_message.get("content", "No response received")
-    tokens_used = response_message.get("tokens_used", {})
-
-    _cost_tracker.record_cost(
-        cost=0.01, agent_id=target_agent, category="chat", operation="chat_completion"
-    )
-
-    prompt_tokens = tokens_used.get("prompt_tokens", 0)
-    completion_tokens = tokens_used.get("completion_tokens", 0)
-
-    return ChatCompletionResponse(
-        id=completion_id,
-        created=created,
-        model=request.model,
-        choices=[
-            Choice(
-                index=0,
-                message=ChatMessage(role="assistant", content=response_content),
-                finish_reason=response_message.get("finish_reason", "stop"),
-            )
-        ],
-        usage=Usage(
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            total_tokens=prompt_tokens + completion_tokens,
-        ),
-    )
-
-
-async def _wait_for_chat_response(
-    request_id: str,
-    target_agent: str,
-    timeout: float = 30.0,
-) -> dict:
-    """
-    Wait for a CHAT_RESPONSE message from the target agent.
-
-    Args:
-        request_id: The request ID to match
-        target_agent: The agent that should respond
-        timeout: Maximum time to wait in seconds
-
-    Returns:
-        The response payload dict
-    """
-    start_time = time.time()
-    last_message_id = None
-
-    while time.time() - start_time < timeout:
-        messages = _slaick.get_messages(
-            to="api-gateway", msg_type=MessageType.CHAT_RESPONSE.value
-        )
-
-        for msg in messages:
-            if last_message_id and msg.get("id") == last_message_id:
-                continue
-            last_message_id = msg.get("id")
-
-            payload = msg.get("payload", {})
-            if payload.get("original_request_id") == request_id:
-                logger.info(f"Received CHAT_RESPONSE for {request_id}")
-                return payload.get("response", {})
-
-        await asyncio.sleep(0.5)
-
-    raise TimeoutError(f"No response from {target_agent} for {request_id}")
 
     # Calculate mock token counts (rough approximation)
     prompt_tokens = sum(len(msg.content.split()) for msg in request.messages)
@@ -398,10 +280,10 @@ async def get_slaick_latest_html() -> HTMLResponse:
         timestamp = msg.get("timestamp", "")
         msg_type = msg.get("type", "INFO")
         payload = msg.get("payload", {})
-
+        
         # Get sender from 'from' field, fallback to agent_id or 'system'
         sender = msg.get("from", "system")
-
+        
         # Extract content based on message type
         content = ""
         if isinstance(payload, dict):
@@ -419,7 +301,7 @@ async def get_slaick_latest_html() -> HTMLResponse:
                 content = payload.get("message") or payload.get("role") or str(payload)
         else:
             content = str(payload)
-
+        
         # Handle potential missing keys gracefully
         if not content:
             content = "(no content)"

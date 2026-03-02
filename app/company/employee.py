@@ -16,6 +16,7 @@ import logging
 import os
 import signal
 import tempfile
+import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -23,6 +24,11 @@ from pathlib import Path
 from typing import Any, Optional
 
 from app.company.beads import Bead, claim_bead_async, get_ready_beads
+from app.company.message_models import (
+    ChatRequestPayload,
+    ChatResponsePayload,
+    ChatMetadata,
+)
 from app.company.slaick import MessageType, Slaick
 from app.company.types import JobDescription
 
@@ -213,7 +219,9 @@ class Employee:
                             try:
                                 records.append(json.loads(line))
                             except json.JSONDecodeError:
-                                logger.warning(f"Skipping malformed record: {line[:50]}...")
+                                logger.warning(
+                                    f"Skipping malformed record: {line[:50]}..."
+                                )
                                 continue
 
             # Find and update this employee's record, or create new if not found
@@ -460,6 +468,7 @@ class Employee:
             "last_heartbeat": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "expires_at": expires_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
+
     # ==========================================================================
 
     # ==========================================================================
@@ -506,7 +515,13 @@ class Employee:
 
         # Auditor matching
         if "auditor" in role:
-            auditor_keywords = ["audit", "cost", "efficiency", "performance", "analysis"]
+            auditor_keywords = [
+                "audit",
+                "cost",
+                "efficiency",
+                "performance",
+                "analysis",
+            ]
             return any(kw in title for kw in auditor_keywords)
 
         # Default: accept all tasks (for generic roles)
@@ -540,7 +555,9 @@ class Employee:
             if not ready_beads:
                 return None
 
-            logger.info(f"Employee {self.agent_id} found {len(ready_beads)} ready beads")
+            logger.info(
+                f"Employee {self.agent_id} found {len(ready_beads)} ready beads"
+            )
 
             # Try to claim matching beads in priority order
             for bead in ready_beads:
@@ -559,7 +576,9 @@ class Employee:
                 claimed = await claim_bead_async(bead.id, self.agent_id)
 
                 if claimed:
-                    logger.info(f"Employee {self.agent_id} successfully claimed bead {bead.id}")
+                    logger.info(
+                        f"Employee {self.agent_id} successfully claimed bead {bead.id}"
+                    )
                     return bead
                 else:
                     logger.debug(
@@ -650,15 +669,15 @@ class Employee:
     async def _janitor_routine(self, bead: Bead) -> None:
         """
         Janitor cleanup routine - scans employees.jsonl for expired agents.
-        
+
         This method:
         1. Scans employees.jsonl for agents with expired leases
         2. Marks expired agents as 'zombie' status
         3. Resets their beads back to 'ready' status
         4. Notifies Slaick of cleanup actions
-        
+
         Uses file locking to prevent concurrent cleanup conflicts.
-        
+
         Args:
             bead: The janitor bead being executed
         """
@@ -683,8 +702,10 @@ class Employee:
             # Send COMPLETE message
             await self._send_completed_message(bead)
 
-            logger.info(f"Janitor {self.agent_id} completed cleanup, "
-                       f"cleaned {zombies_cleaned} zombies")
+            logger.info(
+                f"Janitor {self.agent_id} completed cleanup, "
+                f"cleaned {zombies_cleaned} zombies"
+            )
 
         except Exception as e:
             logger.error(f"Error in janitor routine: {e}")
@@ -711,7 +732,7 @@ class Employee:
     async def _cleanup_zombie_agents(self) -> int:
         """
         Scan employees.jsonl and cleanup expired agents.
-        
+
         Returns:
             Number of zombie agents cleaned up
         """
@@ -721,10 +742,10 @@ class Employee:
     def _sync_cleanup_zombies(self) -> int:
         """
         Synchronous implementation of zombie cleanup with file locking.
-        
+
         Uses POSIX file locking (flock) to prevent race conditions when multiple
         janitors attempt cleanup concurrently. Each zombie is processed atomically.
-        
+
         Returns:
             Number of zombie agents cleaned up
         """
@@ -753,7 +774,9 @@ class Employee:
                             try:
                                 records.append(json.loads(line))
                             except json.JSONDecodeError:
-                                logger.warning(f"Skipping malformed record: {line[:50]}...")
+                                logger.warning(
+                                    f"Skipping malformed record: {line[:50]}..."
+                                )
                                 continue
 
             # Find expired agents (excluding ourselves and already marked zombies)
@@ -762,15 +785,15 @@ class Employee:
 
             for record in records:
                 agent_id = record.get("agent_id")
-                
+
                 # Skip ourselves
                 if agent_id == self.agent_id:
                     continue
-                
+
                 # Skip already marked zombies
                 if record.get("status") == EmployeeStatus.ZOMBIE.value:
                     continue
-                
+
                 # Check if lease is expired
                 expires_at_str = record.get("expires_at")
                 if expires_at_str:
@@ -788,7 +811,7 @@ class Employee:
             for record in expired_agents:
                 agent_id = record.get("agent_id")
                 bead_id = record.get("current_bead_id") or record.get("bead_id")
-                
+
                 logger.info(f"Janitor {self.agent_id} found zombie: {agent_id}")
 
                 # Mark as zombie in registry
@@ -800,7 +823,9 @@ class Employee:
                 if bead_id:
                     try:
                         self._reset_bead_to_ready(bead_id)
-                        logger.info(f"Janitor {self.agent_id} reset bead {bead_id} to ready")
+                        logger.info(
+                            f"Janitor {self.agent_id} reset bead {bead_id} to ready"
+                        )
                     except Exception as e:
                         logger.error(f"Failed to reset bead {bead_id}: {e}")
 
@@ -845,7 +870,7 @@ class Employee:
     def _reset_bead_to_ready(self, bead_id: str) -> None:
         """
         Reset a bead status to 'ready' and clear assignee.
-        
+
         Args:
             bead_id: The bead ID to reset
 
@@ -864,10 +889,12 @@ class Employee:
         if result.returncode != 0:
             raise Exception(f"bd update failed: {result.stderr}")
 
-    def _send_zombie_cleanup_message(self, zombie_agent_id: str, bead_id: Optional[str]) -> None:
+    def _send_zombie_cleanup_message(
+        self, zombie_agent_id: str, bead_id: Optional[str]
+    ) -> None:
         """
         Send a cleanup notification to Slaick.
-        
+
         Args:
             zombie_agent_id: The ID of the cleaned up zombie agent
             bead_id: The bead ID that was reset (if any)
@@ -892,7 +919,6 @@ class Employee:
 
         except Exception as e:
             logger.error(f"Failed to send zombie cleanup message: {e}")
-
 
     def _is_janitor_task(self, bead: Bead) -> bool:
         """
@@ -919,10 +945,17 @@ class Employee:
             True if this is an auditor task, False otherwise
         """
         title = bead.title.lower()
-        auditor_keywords = ["audit", "cost analysis", "efficiency review", "performance audit"]
+        auditor_keywords = [
+            "audit",
+            "cost analysis",
+            "efficiency review",
+            "performance audit",
+        ]
         return any(kw in title for kw in auditor_keywords)
 
-    async def _auditor_routine(self, bead: Bead, operations_file: Path | str = "operations.jsonl") -> None:
+    async def _auditor_routine(
+        self, bead: Bead, operations_file: Path | str = "operations.jsonl"
+    ) -> None:
         """
         Internal Auditor analysis routine - analyzes cost trends and efficiency.
 
@@ -963,8 +996,10 @@ class Employee:
             # Send COMPLETE message
             await self._send_completed_message(bead)
 
-            logger.info(f"Auditor {self.agent_id} completed analysis, "
-                       f"made {recommendations_made} recommendations")
+            logger.info(
+                f"Auditor {self.agent_id} completed analysis, "
+                f"made {recommendations_made} recommendations"
+            )
 
         except Exception as e:
             logger.error(f"Error in auditor routine: {e}")
@@ -1001,7 +1036,9 @@ class Employee:
             Dictionary with analysis results and outliers
         """
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self._sync_analyze_costs, operations_file)
+        return await loop.run_in_executor(
+            None, self._sync_analyze_costs, operations_file
+        )
 
     def _sync_analyze_costs(self, operations_file: Path | str) -> dict:
         """
@@ -1035,12 +1072,14 @@ class Employee:
                                 costs_by_category[category] = []
                                 total_costs[category] = 0.0
 
-                            costs_by_category[category].append({
-                                "agent_id": agent_id,
-                                "cost": cost,
-                                "operation": entry.get("operation", "spawn"),
-                                "timestamp": entry.get("timestamp"),
-                            })
+                            costs_by_category[category].append(
+                                {
+                                    "agent_id": agent_id,
+                                    "cost": cost,
+                                    "operation": entry.get("operation", "spawn"),
+                                    "timestamp": entry.get("timestamp"),
+                                }
+                            )
                             total_costs[category] += cost
                         except json.JSONDecodeError:
                             continue
@@ -1058,15 +1097,21 @@ class Employee:
 
             for entry in entries:
                 if entry["cost"] > median_cost * 2:
-                    efficiency_score = median_cost / entry["cost"] if entry["cost"] > 0 else 0
-                    outliers.append({
-                        "category": category,
-                        "agent_id": entry["agent_id"],
-                        "cost": entry["cost"],
-                        "median_cost": median_cost,
-                        "efficiency_score": round(efficiency_score, 2),
-                        "recommendation": self._generate_recommendation(category, entry["cost"], median_cost),
-                    })
+                    efficiency_score = (
+                        median_cost / entry["cost"] if entry["cost"] > 0 else 0
+                    )
+                    outliers.append(
+                        {
+                            "category": category,
+                            "agent_id": entry["agent_id"],
+                            "cost": entry["cost"],
+                            "median_cost": median_cost,
+                            "efficiency_score": round(efficiency_score, 2),
+                            "recommendation": self._generate_recommendation(
+                                category, entry["cost"], median_cost
+                            ),
+                        }
+                    )
 
         return {
             "total_costs": total_costs,
@@ -1075,7 +1120,9 @@ class Employee:
             "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-    def _generate_recommendation(self, category: str, cost: float, median_cost: float) -> str:
+    def _generate_recommendation(
+        self, category: str, cost: float, median_cost: float
+    ) -> str:
         """
         Generate a recommendation for a cost outlier.
 
@@ -1090,15 +1137,21 @@ class Employee:
         ratio = cost / median_cost if median_cost > 0 else 0
 
         if category in ["ultrabrain", "expensive", "premium"]:
-            return f"Consider downgrading from {category} to 'deep' or 'quick' category. " \
-                   f"Current cost (${cost:.3f}) is {ratio:.1f}x median (${median_cost:.3f})."
+            return (
+                f"Consider downgrading from {category} to 'deep' or 'quick' category. "
+                f"Current cost (${cost:.3f}) is {ratio:.1f}x median (${median_cost:.3f})."
+            )
 
         if ratio > 3.0:
-            return f"High-cost outlier detected. Consider task batching or model downgrade. " \
-                   f"Cost (${cost:.3f}) is {ratio:.1f}x category median (${median_cost:.3f})."
+            return (
+                f"High-cost outlier detected. Consider task batching or model downgrade. "
+                f"Cost (${cost:.3f}) is {ratio:.1f}x category median (${median_cost:.3f})."
+            )
 
-        return f"Review resource allocation for {category}. " \
-               f"Cost (${cost:.3f}) exceeds median (${median_cost:.3f}) by {ratio:.1f}x."
+        return (
+            f"Review resource allocation for {category}. "
+            f"Cost (${cost:.3f}) exceeds median (${median_cost:.3f}) by {ratio:.1f}x."
+        )
 
     def _send_audit_recommendation(self, outlier: dict) -> None:
         """
@@ -1128,8 +1181,10 @@ class Employee:
                 payload=payload,
             )
 
-            logger.info(f"Sent AUDIT recommendation for {outlier['agent_id']} "
-                       f"({outlier['category']}: ${outlier['cost']:.3f})")
+            logger.info(
+                f"Sent AUDIT recommendation for {outlier['agent_id']} "
+                f"({outlier['category']}: ${outlier['cost']:.3f})"
+            )
 
         except Exception as e:
             logger.error(f"Failed to send audit recommendation: {e}")
@@ -1153,13 +1208,17 @@ class Employee:
         """
         # Specialization gate: janitor tasks use dedicated routine
         if self._is_janitor_task(bead):
-            logger.info(f"Employee {self.agent_id} detected janitor task, delegating to routine")
+            logger.info(
+                f"Employee {self.agent_id} detected janitor task, delegating to routine"
+            )
             await self._janitor_routine(bead)
             return
 
         # Specialization gate: auditor tasks use dedicated routine
         if self._is_auditor_task(bead):
-            logger.info(f"Employee {self.agent_id} detected auditor task, delegating to routine")
+            logger.info(
+                f"Employee {self.agent_id} detected auditor task, delegating to routine"
+            )
             await self._auditor_routine(bead)
             return
 
@@ -1343,8 +1402,12 @@ class Employee:
                 # Handle different message types
                 if msg_type == MessageType.ACK.value:
                     await self._handle_ack_message(message)
+                elif (
+                    msg_type == MessageType.CHAT_REQUEST.value
+                    or msg_type == "CHAT_REQUEST"
+                ):
+                    await self._handle_chat_request_message(message)
                 else:
-                    # For now, just log unknown message types
                     logger.debug(
                         f"Employee {self.agent_id} received unhandled message type: {msg_type}"
                     )
@@ -1371,6 +1434,147 @@ class Employee:
             f"Employee {self.agent_id} received ACK for {original_type} with status {status}"
         )
 
+    async def _handle_chat_request_message(self, message: dict) -> None:
+        """
+        Handle CHAT_REQUEST messages from the OpenAI API endpoint.
+
+        Args:
+            message: The CHAT_REQUEST message dict
+        """
+        import json
+
+        payload = message.get("payload", {})
+        request_id = payload.get("request_id")
+
+        try:
+            chat_request_data = payload.get("chat_request", {})
+            messages = chat_request_data.get("messages", [])
+            model = chat_request_data.get("model", "default")
+            temperature = chat_request_data.get("temperature", 1.0)
+            max_tokens = chat_request_data.get("max_tokens")
+
+            chat_request = ChatRequestPayload(
+                messages=messages,
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+
+            logger.info(f"Employee {self.agent_id} received CHAT_REQUEST {request_id}")
+
+            response = await self.handle_chat_request(chat_request)
+
+            response_payload = {
+                "request_id": request_id,
+                "original_request_id": request_id,
+                "response": response.to_dict(),
+            }
+
+            self.slaick.append_message(
+                from_agent=self.agent_id,
+                to_agent=payload.get("reply_to", "orchestrator"),
+                msg_type=MessageType.CHAT_RESPONSE,
+                payload=response_payload,
+            )
+
+            logger.info(f"Employee {self.agent_id} sent CHAT_RESPONSE for {request_id}")
+
+        except Exception as e:
+            logger.error(f"Error handling CHAT_REQUEST message: {e}")
+            error_payload = {
+                "request_id": request_id,
+                "error": str(e),
+            }
+            self.slaick.append_message(
+                from_agent=self.agent_id,
+                to_agent=payload.get("reply_to", "orchestrator"),
+                msg_type=MessageType.ERROR,
+                payload=error_payload,
+            )
+
+    async def handle_chat_request(
+        self, chat_request: ChatRequestPayload
+    ) -> ChatResponsePayload:
+        """
+        Handle an incoming chat request.
+
+        This method processes chat requests from the OpenAI-compatible API endpoint,
+        generates a response based on the employee's role, and tracks costs.
+
+        Args:
+            chat_request: The chat request payload containing messages and parameters
+
+        Returns:
+            ChatResponsePayload with the generated response
+        """
+        import time
+
+        start_time = time.time()
+        request_id = str(uuid.uuid4())
+
+        logger.info(
+            f"Employee {self.agent_id} processing chat request "
+            f"(model={chat_request.model}, messages={len(chat_request.messages)})"
+        )
+
+        try:
+            self._status = EmployeeStatus.BUSY
+
+            last_user_message = ""
+            for msg in reversed(chat_request.messages):
+                if msg.get("role") == "user":
+                    last_user_message = msg.get("content", "")
+                    break
+
+            response_content = (
+                f"🤖 Agent '{self.agent_id}' (Role: {self.job_description.role})\n\n"
+                f'Received: "{last_user_message[:100]}"\n\n'
+                f"Parameters: temperature={chat_request.temperature}, "
+                f"max_tokens={chat_request.max_tokens}\n\n"
+                "This is a placeholder response. In production, this would be "
+                "processed by the actual agent logic."
+            )
+
+            end_time = time.time()
+            duration_ms = (end_time - start_time) * 1000
+
+            cost = 0.01
+
+            metadata = ChatMetadata(
+                request_id=request_id,
+                agent_id=self.agent_id,
+                start_time=datetime.now(timezone.utc).isoformat(),
+                completion_time=datetime.now(timezone.utc).isoformat(),
+                duration_ms=duration_ms,
+            )
+
+            logger.info(
+                f"Chat request {request_id} completed in {duration_ms:.2f}ms, "
+                f"cost: ${cost:.3f}"
+            )
+
+            return ChatResponsePayload(
+                content=response_content,
+                finish_reason="stop",
+                tokens_used={
+                    "prompt_tokens": sum(
+                        len(m.get("content", "").split()) for m in chat_request.messages
+                    ),
+                    "completion_tokens": len(response_content.split()),
+                    "total_tokens": 0,
+                },
+            )
+
+        except Exception as e:
+            logger.error(f"Error handling chat request: {e}")
+            return ChatResponsePayload(
+                content=f"Error processing request: {str(e)}",
+                finish_reason="error",
+                error=str(e),
+            )
+        finally:
+            self._status = EmployeeStatus.IDLE
+
     async def stop_message_listener(self) -> None:
         """Stop the message listener background task."""
         if not self._is_listening:
@@ -1390,7 +1594,6 @@ class Employee:
     def is_listening(self) -> bool:
         """Check if the message listener is running."""
         return self._is_listening
-
 
 
 @asynccontextmanager
@@ -1435,7 +1638,7 @@ async def employee_runtime(
 async def main() -> None:
     """
     Entry point for running an Employee worker directly.
-    
+
     Initializes a generic Employee agent that can handle various tasks.
     Useful for manual testing or running a standalone worker.
     Handles graceful shutdown on Ctrl+C.
@@ -1443,51 +1646,67 @@ async def main() -> None:
     import argparse
     import signal
     import uuid
-    
-    parser = argparse.ArgumentParser(description='Run an Employee agent')
-    parser.add_argument('--agent-id', default=None, help='Agent ID (auto-generated if not provided)')
-    parser.add_argument('--role', default='Software Engineer', help='Role for this employee')
-    parser.add_argument('--employees-file', default='employees.jsonl', help='Path to employees registry file')
+
+    parser = argparse.ArgumentParser(description="Run an Employee agent")
+    parser.add_argument(
+        "--agent-id", default=None, help="Agent ID (auto-generated if not provided)"
+    )
+    parser.add_argument(
+        "--role", default="Software Engineer", help="Role for this employee"
+    )
+    parser.add_argument(
+        "--employees-file",
+        default="employees.jsonl",
+        help="Path to employees registry file",
+    )
     args = parser.parse_args()
-    
+
     # Setup logging
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
-    
+
     # Generate agent ID if not provided
     agent_id = args.agent_id or f"emp-manual-{uuid.uuid4().hex[:8]}"
-    
+
     # Create a generic JobDescription
     job_description = JobDescription(
         role=args.role,
         description=f"Generic worker for manual testing ({args.role})",
         required_capabilities=["general", "coding", "debugging"],
-        suggested_category="deep",
+        required_abilities={
+            "world-knowledge": 0.5,
+            "reasoning": 0.5,
+            "coding": 0.5,
+            "language-understanding": 0.5,
+            "writing": 0.5,
+            "creative-problem-solving": 0.5,
+            "safety-alignment": 0.5,
+        },
         cost_estimate=0.05,
         complexity=0.5,
     )
-    
+
     # Initialize Employee
     employee = Employee(
         agent_id=agent_id,
         job_description=job_description,
         employees_file=args.employees_file,
     )
-    
+
     # Setup signal handlers for graceful shutdown
     def signal_handler(sig, frame):
         logger.info(f"Shutdown signal received for {agent_id}, stopping employee...")
         asyncio.create_task(employee.shutdown())
-    
+
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    
+
     logger.info(f"Starting Employee {agent_id} with role: {args.role}")
     print(f"Employee {agent_id} started (role: {args.role})")
     print("Press Ctrl+C to stop")
-    
+
     try:
         await employee.start()
         # Keep running until shutdown
@@ -1505,4 +1724,3 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
-
