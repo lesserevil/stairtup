@@ -610,7 +610,6 @@ class Employee:
                 from_agent=self.agent_id,
                 to_agent="orchestrator",
                 msg_type=MessageType.COMPLETE,
-                msg_type=MessageType.COMPLETE,
                 payload=payload,
             )
 
@@ -694,7 +693,6 @@ class Employee:
                 self.slaick.append_message(
                     from_agent=self.agent_id,
                     to_agent="orchestrator",
-                    msg_type=MessageType.ERROR,
                     msg_type=MessageType.ERROR,
                     payload={
                         "agent_id": self.agent_id,
@@ -976,7 +974,6 @@ class Employee:
                     from_agent=self.agent_id,
                     to_agent="orchestrator",
                     msg_type=MessageType.ERROR,
-                    msg_type=MessageType.ERROR,
                     payload={
                         "agent_id": self.agent_id,
                         "bead_id": bead.id,
@@ -1198,7 +1195,6 @@ class Employee:
                 self.slaick.append_message(
                     from_agent=self.agent_id,
                     to_agent="orchestrator",
-                    msg_type=MessageType.ERROR,
                     msg_type=MessageType.ERROR,
                     payload={
                         "agent_id": self.agent_id,

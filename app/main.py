@@ -205,40 +205,42 @@ def create_app() -> FastAPI:
 
     # Mount the OpenAI-compatible API router under /api prefix
     app.include_router(openai_router, prefix="/api")
+    # Import WorkspaceManager and define route that needs app
+    from app.company.workspace_manager import WorkspaceManager
 
-from app.company.workspace_manager import WorkspaceManager
+    @app.get("/api/dashboard/live", tags=["dashboard"])
+    async def get_dashboard_data() -> dict[str, Any]:
+        """Get live dashboard data including employees, beads, cost, and slaick messages."""
+        workspace = WorkspaceManager()
 
-@app.get("/api/dashboard/live", tags=["dashboard"])
-async def get_dashboard_data() -> dict[str, Any]:
-    """Get live dashboard data including employees, beads, cost, and slaick messages.""")
-    workspace = WorkspaceManager()
+        # Get active employees
+        from app.company.employee import Employee
+        employees = Employee.get_all_active()
 
-    # Get active employees
-    from app.company.employee import Employee
-    employees = Employee.get_all_active()
+        # Get product info
+        products = workspace.list_active_products()
 
-    # Get product info
-    products = workspace.list_active_products()
+        # Get cost tracking
+        from app.company.cost_tracker import CostTracker
+        cost_tracker = CostTracker(budget=10.0)
 
-    # Get cost tracking
-    from app.company.cost_tracker import CostTracker
-    cost_tracker = CostTracker(budget=10.0)
-
-    return {
-        "employees": [{"employee_id": e["employee_id"], "status": e["status"]} for e in employees],
-        "employee_count": len(employees),
-        "products": [p.to_dict() for p in products],
-        "cost": {"spent": cost_tracker.get_current_spent(), "budget": 10.0},
-        "health": {"openai_api": "ready"},
-    }
+        return {
+            "employees": [{"employee_id": e["employee_id"], "status": e["status"]} for e in employees],
+            "employee_count": len(employees),
+            "products": [{"name": p.name, "status": p.status} for p in products],
+            "cost_tracker": {
+                "total_cost": cost_tracker.get_total_cost(),
+                "budget": cost_tracker.budget,
+            },
+        }
 
 
     return app
 
 
+
 # Create the application instance
 app = create_app()
-
 
 @click.group()
 def cli():
@@ -367,7 +369,29 @@ def create(product_id: str, name: str):
 @cli.command()
 def whoami():
     """Show which product we're working on."""
-    pass
+    # Check for current product context
+    context_file = Path(".product_context")
+    if context_file.exists():
+        with open(context_file, "r") as f:
+            product_id = f.read().strip()
+        click.echo(f"Current product: {product_id}")
+        
+        # Show additional context if available
+        try:
+            products = WorkspaceManager.list_active_products()
+            for p in products:
+                if p.name == product_id:
+                    click.echo(f"  Git URL: {p.git_url}")
+                    click.echo(f"  Status: {p.status}")
+                    click.echo(f"  Created: {p.created_at}")
+                    break
+        except FileNotFoundError:
+            click.echo("  (products.jsonl not found)")
+        except Exception as e:
+            click.echo(f"  (could not load product details: {e})")
+    else:
+        click.echo("No product selected.")
+        click.echo("Use 'bd product add <url>' to add a product first.")
 
 
 import uvicorn
@@ -382,9 +406,9 @@ def run_server(port: int = 9754, reload: bool = False):
 
 # CLI command to show CLI help
 @cli.command()
-def help_cmd(**kwargs):
-    """Show help text."""
-    pass
+def help_cmd():
+    """Show help text for the bd CLI."""
+    click.echo(click.get_current_context().find_root().get_help())
 
 
 if __name__ == "__main__":

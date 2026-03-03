@@ -15,7 +15,7 @@ from .recruiter import Recruiter, run_recruiter
 from .spawner import AgentSpawner
 from .employee import Employee, EmployeeStatus
 from .slaick import MessageType, Slaick
-from .message_models import ChatRequestPayload, ChatResponsePayload, ChatMetadata
+# from .message_models import ChatRequestPayload, ChatResponsePayload, ChatMetadata  # Temporarily commented out
 from .cost_tracker import CostTracker
 from .types import JobDescription, Product
 from .workspace_manager import WorkspaceManager
