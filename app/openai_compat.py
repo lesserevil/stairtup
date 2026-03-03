@@ -471,3 +471,21 @@ async def get_slaick_latest_json(limit: int = 20) -> list[dict[str, Any]]:
         List of recent Slaick messages.
     """
     return read_slaick_jsonl(limit=limit)
+
+
+@router.get("/costs")
+async def get_cost_breakdown() -> dict[str, Any]:
+    """
+    Get cost tracking breakdown.
+
+    Returns:
+        Dictionary with cost breakdown by category and totals.
+    """
+    return {
+        "budget": _cost_tracker.budget,
+        "current_spent": _cost_tracker.current_spent,
+        "remaining_budget": _cost_tracker.get_remaining_budget(),
+        "category_spending": _cost_tracker.get_all_category_spending(),
+        "circuit_breaker_tripped": _cost_tracker.is_circuit_breaker_tripped(),
+        "circuit_breaker_reason": _cost_tracker.get_circuit_breaker_reason(),
+    }
