@@ -505,3 +505,62 @@ async def get_cost_breakdown() -> dict[str, Any]:
         "circuit_breaker_tripped": _cost_tracker.is_circuit_breaker_tripped(),
         "circuit_breaker_reason": _cost_tracker.get_circuit_breaker_reason(),
     }
+
+
+@router.get("/health")
+async def health_check() -> dict[str, Any]:
+    """
+    Health check endpoint for monitoring.
+
+    Returns:
+        Dictionary with health status and system information.
+    """
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "service": "stairtup-ai-gateway",
+        "version": "1.0.0",
+        "cost_tracker": {
+            "budget": _cost_tracker.budget,
+            "spent": _cost_tracker.current_spent,
+            "remaining": _cost_tracker.get_remaining_budget(),
+            "circuit_breaker_tripped": _cost_tracker.is_circuit_breaker_tripped(),
+        },
+        "slaick": {
+            "message_count": _slaick.count_messages(),
+        },
+    }
+
+
+@router.get("/health/dependencies")
+async def health_check_dependencies() -> dict[str, Any]:
+    """
+    Extended health check for dependencies.
+
+    Returns:
+        Dictionary with dependency health status.
+    """
+    import os
+
+    employees_file = Path("employees.jsonl")
+    slaick_file = _slaick.file_path
+    operations_file = _cost_tracker.operations_file
+
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "dependencies": {
+            "employees_registry": {
+                "exists": employees_file.exists(),
+                "path": str(employees_file),
+            },
+            "slaick_messages": {
+                "exists": slaick_file.exists(),
+                "path": str(slaick_file),
+            },
+            "operations_log": {
+                "exists": operations_file.exists(),
+                "path": str(operations_file),
+            },
+        },
+    }
