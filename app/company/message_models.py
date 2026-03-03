@@ -72,6 +72,3 @@ class ChatMetadata:
             "completion_time": self.completion_time,
             "duration_ms": self.duration_ms,
         }
-
-
-EOF
