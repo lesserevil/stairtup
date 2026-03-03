@@ -135,6 +135,20 @@ def create_app() -> FastAPI:
         """
         return {"status": "healthy", "service": "agent-company-swarm"}
 
+    @app.get("/health/dependencies", tags=["health"])
+    async def health_dependencies() -> dict[str, Any]:
+        '''
+        Health check endpoint for dependency services.
+
+        Returns status of recruiter, spawner, and employees for E2E tests.
+
+        Returns:
+            Dict with overall health and per-dependency status
+        '''
+        from app.api_health import get_all_dependencies_status
+        return get_all_dependencies_status()
+
+
     @app.post("/api/tasks/create")
     async def create_task(request: Request) -> dict[str, str]:
         """
