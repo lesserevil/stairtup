@@ -1,0 +1,61 @@
+name: Smoke Tests
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  smoke-test:
+    name: Production Smoke Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest
+
+    - name: Run heartbeat latency benchmark
+      run: |
+        python3 tests/benchmark_heartbeat_latency.py
+        echo "Benchmark completed successfully"
+
+    - name: Check health dependencies endpoint
+      run: |
+        # Start server in background
+        python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+        SERVER_PID=$!
+        
+        # Wait for server to start
+        sleep 2
+        
+        # Test health endpoints
+        curl -s http://127.0.0.1:8000/health > /dev/null
+        echo "Health check endpoint: OK"
+        
+        curl -s http://127.0.0.1:8000/health/dependencies | python3 -m json.tool > /dev/null
+        echo "Health dependencies endpoint: OK"
+        
+        # Kill server
+        kill $SERVER_PID 2>/dev/null || true
+
+    - name: Run smoke test production
+      run: |
+        python3 tests/smoke_test_production.py
+      timeout-minutes: 10
+      env:
+        SMOKE_CYCLES: "5"
+
+    - name: Performance benchmark summary
+      run: |
+        cat doc/performance_benchmarks.md | tail -20
