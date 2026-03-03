@@ -279,14 +279,30 @@ async def create_chat_completion(
 
     logger.info(f"Sent CHAT_REQUEST {request_id} to {target_agent}")
 
-    try:
-        response_message = await asyncio.wait_for(
-            _wait_for_chat_response(request_id, target_agent), timeout=30.0
-        )
-    except asyncio.TimeoutError:
-        raise HTTPException(
-            status_code=504, detail="Timeout waiting for agent response"
-        )
+    # Retry logic with exponential backoff
+    max_retries = 3
+    retry_delay = 1.0
+    
+    for attempt in range(max_retries):
+        try:
+            response_message = await asyncio.wait_for(
+                _wait_for_chat_response(request_id, target_agent), timeout=30.0
+            )
+            break  # Success, exit retry loop
+        except asyncio.TimeoutError:
+            if attempt == max_retries - 1:
+                # Last attempt failed
+                raise HTTPException(
+                    status_code=504, 
+                    detail=f"Timeout waiting for agent response after {max_retries} attempts"
+                )
+            # Wait before retry with exponential backoff
+            logger.warning(
+                f"Timeout on attempt {attempt + 1}/{max_retries}, "
+                f"retrying in {retry_delay}s..."
+            )
+            await asyncio.sleep(retry_delay)
+            retry_delay *= 2  # Exponential backoff
 
     response_content = response_message.get("content", "No response received")
     tokens_used = response_message.get("tokens_used", {})
