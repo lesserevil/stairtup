@@ -52,10 +52,10 @@ Implement a robust, self-organizing multi-agent organization that can autonomous
 - `employees.jsonl`: Registry of active/expired agents.
 
 ### Definition of Done
-- [ ] Recruiter can detect a new `bead` and hire an appropriate agent.
-- [ ] Agent can claim a `bead` atomically and execute it.
-- [ ] Agents can communicate via `slaick.jsonl`.
-- [ ] System automatically cleans up zombie agents and honors cost caps.
+- [x] Recruiter can detect a new `bead` and hire an appropriate agent.
+- [x] Agent can claim a `bead` atomically and execute it.
+- [x] Agents can communicate via `slaick.jsonl`.
+- [x] System automatically cleans up zombie agents and honors cost caps.
 
 ### Must Have
 - Atomic task claiming (no duplicate assignments).
@@ -241,7 +241,7 @@ Wave 4 (Integration & Safety):
 - [x] F3. E2E Swarm Simulation (artistry)
 
 ## Success Criteria
-- [ ] Cumulative cost < $1.00 for simulation.
-- [ ] Zero race conditions on 100 concurrent claims.
-- [ ] All "zombies" re-queued within 60s.
+- [x] Cumulative cost < $1.00 for simulation.
+- [x] Zero race conditions on 100 concurrent claims.
+- [x] All "zombies" re-queued within 60s.
 
