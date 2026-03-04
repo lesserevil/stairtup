@@ -7,6 +7,7 @@ import os
 import json
 import subprocess
 import html
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -25,12 +26,19 @@ def get_working_directory() -> str:
     return cwd
 
 
+def extract_bead_id(output: str) -> str:
+    """Extract bead ID from bd CLI output."""
+    # bd output format: "✓ Created issue: stairtup-abc123"
+    match = re.search(r"(stairtup-[a-z0-9]+)", output, re.IGNORECASE)
+    if match:
+        return match.group(1)
+    return "__unknown_id__"
+
+
 def create_bug_bead(
     title: str, description: str, dom_snapshot: str, console_logs: list[dict[str, Any]]
 ) -> dict[str, Any]:
-    """
-    Create a bead from bug report data.
-    """
+    """Create a bead from bug report data."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     bead_title = f"[BUG] {title[:50]}..." if len(title) > 50 else f"[BUG] {title}"
 
@@ -69,7 +77,9 @@ Captured via Auto-Bead Bug Reporter
         )
 
         if result.returncode == 0:
-            bead_id = extract_bead_id(result.stdout)
+            # Check both stdout and stderr for bead ID
+            output = result.stdout + result.stderr
+            bead_id = extract_bead_id(output)
             return {
                 "success": True,
                 "bead_id": bead_id,
@@ -89,24 +99,6 @@ Captured via Auto-Bead Bug Reporter
             "error": str(e),
             "message": "Exception during bead creation",
         }
-
-def extract_bead_id(output: str) -> str:
-    """Extract bead ID from bd CLI output."""
-    # bd output format: "✓ Created issue: stairtup-abc123"
-    import re
-    match = re.search(r'(stairtup-[a-z0-9]+)', output, re.IGNORECASE)
-    if match:
-        return match.group(1)
-    return "__unknown_id__"
-def extract_bead_id(output: str) -> str:
-    """Extract bead ID from bd CLI output."""
-    lines = output.split("\n")
-    for line in lines:
-        if "[ ]" in line or "[x]" in line:
-            parts = line.split()
-            if len(parts) > 1 and parts[1].startswith("stairtup-"):
-                return parts[1]
-    return "__unknown_id__"
 
 
 def escape_html(text: str) -> str:
