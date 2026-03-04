@@ -1,4 +1,27 @@
-"""
+import os
+import json
+import subprocess
+import html
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+
+def get_working_directory() -> str:
+    """Get the working directory for the app (works in Docker or local)."""
+    # In Docker, WORKDIR is /app. Locally it's the project root.
+    cwd = os.getcwd()
+    # If we're in /app, use that. Otherwise use current directory.
+    if cwd == "/app" or cwd.startswith("/app/"):
+        return "/app"
+    # Check if we're in the project root (has .beads directory)
+    if Path(cwd + "/.beads").exists():
+        return cwd
+    # Fallback: try to find project root
+    for path in [cwd, "/app", "."]:
+        if Path(path + "/.beads").exists():
+            return path
+    return cwd  # fallback to current
 Auto-Bead System: Bug reporting with DOM and console capture
 Provides a 'Bug' button on any web page that creates beads with full context.
 """
@@ -58,7 +81,7 @@ Captured via Auto-Bead Bug Reporter
             ["bd", "create", "--title", bead_title, 
              "--description", description_full[:500],
              "--priority", "3"],
-            cwd="/home/shedwards/src/stairtup",
+            cwd=get_working_directory(),
             capture_output=True,
             text=True,
             timeout=30
