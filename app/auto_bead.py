@@ -90,7 +90,14 @@ Captured via Auto-Bead Bug Reporter
             "message": "Exception during bead creation",
         }
 
-
+def extract_bead_id(output: str) -> str:
+    """Extract bead ID from bd CLI output."""
+    # bd output format: "✓ Created issue: stairtup-abc123"
+    import re
+    match = re.search(r'(stairtup-[a-z0-9]+)', output, re.IGNORECASE)
+    if match:
+        return match.group(1)
+    return "__unknown_id__"
 def extract_bead_id(output: str) -> str:
     """Extract bead ID from bd CLI output."""
     lines = output.split("\n")
