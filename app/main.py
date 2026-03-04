@@ -248,6 +248,47 @@ def create_app() -> FastAPI:
             },
         }
 
+    
+    @app.post("/api/bug-report", tags=["bug-report"])
+    async def report_bug(request: Request) -> dict[str, Any]:
+        """
+        Create a bug report bead from browser data.
+        
+        Captures:
+        - Bug description from user
+        - Full DOM snapshot
+        - Console logs
+        - Browser context (URL, viewport, user agent)
+        
+        Returns:
+            Dict with success status and created bead ID
+        """
+        try:
+            data = await request.json()
+            
+            description = data.get("description", "")
+            dom_snapshot = data.get("dom_snapshot", "")
+            console_logs = data.get("console_logs", [])
+            context = data.get("context", {})
+            
+            if not description:
+                return {"success": False, "message": "Description is required"}
+            
+            # Import auto bead module
+            from app.auto_bead import create_bug_bead
+            
+            # Create the bug bead
+            result = create_bug_bead(
+                title=description[:100],
+                description=description,
+                dom_snapshot=dom_snapshot,
+                console_logs=console_logs
+            )
+            
+            return result
+            
+        except Exception as e:
+            return {"success": False, "message": str(e)}
 
     return app
 
