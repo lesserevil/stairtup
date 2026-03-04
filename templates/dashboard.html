@@ -416,9 +416,8 @@
                                 <span class="employee-id">{{ employee.agent_id }}</span>
                                 <span class="employee-status {{ employee.status }}"></span>
                             </div>
-                            <div class="employee-role">{{ employee.role }}</div>
-                            <div class="employee-meta">📋 {{ employee.bead_id }}</div>
-                            <div class="employee-meta">🕐 {{ employee.hired_at[:19] }}</div>
+                            <div class="employee-meta">📋 {{ employee.get('bead_id', 'N/A') }}</div>
+                            <div class="employee-meta">🕐 {{ employee.get('hired_at', 'N/A')[:19] if employee.get('hired_at') else 'N/A' }}</div>
                             <span class="employee-category category-{{ employee.category }}">
                                 {{ employee.category }}
                             </span>
